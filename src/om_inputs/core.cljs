@@ -13,13 +13,15 @@
 ;;;;;;;;;; Low level Clojure Utils ;;;;;;;;;;;;;;;
 
 (defn make-map-with-vals
-  "[{:a 1 :b 2} {:a 3 :b nil}] :a :b -> {1 2}"
+  "[{:a 1 :b 2} {:a 3 :b 4}] :a :b -> {1 2, 3 4}
+   [{:a 1 :b 2} {:a 3 :b nil}] :a :b -> {1 2}"
   [ms k1 k2]
   (into {} (for [m ms
                  :let [[v1 v2] ((juxt k1 k2) m)]
                  :when v2]
             [v1 v2])))
-(make-map-with-vals [{:a 1 :b 2} {:a 3 :b nil}] :a :b)
+
+;;(make-map-with-vals [{:a 1 :b 2} {:a 3 :b nil}] :a :b)
 
 ;;;;;;;;; i18n Utils ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
