@@ -1,22 +1,39 @@
 (ns om-inputs.core
-  (:require-macros [cljs.core.async.macros :refer [go]])
+  (:require-macros [cljs.core.async.macros :refer [go]]
+                   [schema.macros :as s])
   (:require [om.core :as om :include-macros true]
             [om.dom :as dom :include-macros true]
-            [cljs.core.async :refer [chan put! >! <! alts!]]))
+            [cljs.core.async :refer [chan put! >! <! alts!]]
+            [cljs.core.async.impl.channels :refer [ManyToManyChannel]]
+            [schema.core :as s]
+            [clojure.string :as str]))
 
 (enable-console-print!)
 
 
+(def sch-inputs {:inputs s/Any})
+
+(def sch-chan {:chan ManyToManyChannel})
+
+
+(def sch-i18n {:i18n {:input s/Any}})
+
+(def sch-state (merge sch-inputs sch-chan {s/Any s/Any}))
+
+
 (defn ->label
-  "Translate labels or business data"
+  "Translate labels or business data
+  If a label is not found the more precise k is used"
   ([ref-data m k]
    "Find label in the ref data"
-   (->> k
-        ref-data
-        (some #(when ((comp  #{(k m)} :code) %) %))
-        :label))
+   (if-let [label (->> k
+                    ref-data
+                    (some #(when ((comp  #{(k m)} :code) %) %))
+                    :label)]
+     label
+     (str/capitalize (name k))))
   ([ref-data ks]
-   (get-in ref-data ks)))
+   (get-in ref-data ks (str/capitalize (name (last ks))))))
 
 
 
@@ -24,12 +41,12 @@
   "Display the raw data."
   [app owner]
   (om/component
-   (dom/p nil (str app))))
+   (dom/p nil (str (:label app)))))
 
-;;;;;; Skill input ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+;;;;;; Generic input ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
 (defn e-value
-  "Get value from event"
+  "Get value from an event"
   [e]
   (-> e .-target .-value))
 
@@ -55,26 +72,43 @@
                                                 :onChange put-chan} opts)))
                (when (:labeled opts)
                  (dom/label nil v))))))
+
+
+
+
+(s/defn  ^:always-validate magic-input
+        [k :- s/Keyword
+         state :- sch-state
+         shared :- sch-i18n
+         opts]
+        (let [{:keys [chan inputs]} state
+              i18n (:i18n shared)]
+          (make-input chan (->label i18n [:input k]) k (k inputs) opts)))
+
 (defn build-input
-  "Handle the complete display of an input and 2 ways linkage.
-   opts is a map of options accepted by the React input
+  "Handle the display of an input from state and push change on a channel.
+   The map of inputs is expected in state under the key :inputs
    The channel is expected in state under key :chan
-   The i18n fn is expected in shared under key :i18n"
-  [owner k & opts]
-  (let [{:keys [chan inputs] :as state} (om/get-state owner)
-        i18n (om/get-shared owner :i18n)
-        opts (apply hash-map opts)]
-    (make-input chan (i18n [:input k]) k (k inputs) opts)))
+   The i18n fn is expected in shared under key :i18n
+   Handle the display of an input from state and push change on a queue
+   The channel is expected in state under key :chan"
+  ([owner k opts]
+   (let [state (om/get-state owner)
+         shared (om/get-shared owner)]
+     (magic-input k state shared opts)))
+  ([owner k]
+   (build-input owner k {})))
 
 
 (def input [{:code :label :value "" }
-            {:code :version :value 0}
+            {:code :version :value ""}
             {:code :tier :value ""}
             {:code :cat :value "" :opts {:type "select"}}
-            {:code :level :value 0 :opts {:type "range" :min 0 :max 5}}])
+            {:code :level :value 0 :opts {:type "range" :min 0 :max 5 :labeled true}}])
 
 
 (defn build-init [m]
+  "Build the init map backing the inputs in the form."
   (apply merge
          (for  [{:keys [code value]} m]
            {code value})))
@@ -82,13 +116,26 @@
 
 (build-init input)
 
-(defn make-input-comp
-  [app owner m]
+(def sch-conf-opts {(s/optional-key :labeled) s/Bool
+                    (s/optional-key :min) s/Int
+                    (s/optional-key :max) s/Int
+                    (s/optional-key :type) (s/enum "text" "range" "number" "color" "select") })
+
+
+(def sch-conf [{:code s/Keyword
+                :value s/Any
+                (s/optional-key :opts) sch-conf-opts}])
+
+
+
+(s/defn ^:always-validate make-input-comp
+  "Build the input Om component based on the config"
+  [conf :- sch-conf]
   (fn [app owner]
     (reify
       om/IInitState
       (init-state [_]
-                  (let [init {:label "" :version "" :level 0 :cat "" :tier ""}]
+                  (let [init (build-init conf)]
                     {:chan (chan)
                      :inputs init
                      :init init
@@ -107,28 +154,15 @@
                            (om/set-state! owner [:inputs k] (coerce v))))
                        (recur)))))
       om/IRenderState
-      (render-state [_ {chan :chan  {:keys [label level cat tier version] :as new-skill} :inputs }]
+      (render-state [_ {:keys [chan inputs] :as state}]
                     (let [i18n (om/get-shared owner :i18n)]
                       (dom/fieldset #js {:className "form"}
-                                    (build-input owner :label)
-                                    (build-input owner :version)
-                                    (build-input owner :level :type "range" :min 1 :max 5)
-                                    (make-select chan "Tier" :tier tier (i18n [:tier] ))
-                                    (make-select chan (i18n [:input :cat]) :cat cat (i18n [:cat]))
+                                    (into-array (map (fn [{:keys [code opts]}]
+                                                      (build-input owner code opts) )  conf))
                                     (dom/input #js {:type  "button"
-                                                    :value (i18n [:input :add-skill])
-                                                    :onClick #(put! chan [:create new-skill])})))))))
-
-
-
-
-
-
-
-
-
-
-
+                                                    :value (->label i18n [:input :create])
+                                                    :onClick #(put! chan [:create inputs])})
+                                    (apply dom/div nil (om/build-all trace app))))))))
 
 
 
@@ -163,9 +197,9 @@
     om/IRenderState
     (render-state [_ {:keys [inputs] :as state}]
                   (dom/div nil
-                           (build-input owner :backgroundColor :type "color" :labeled true)
-                           (dom/div nil  (build-input owner :width :type "range" :min 0 :max 500 :labeled true))
-                           (dom/div nil (build-input owner :height :type "range" :min 0 :max 500 :labeled true))
+                           (build-input owner :backgroundColor {:type "color" :labeled true})
+                           (dom/div nil (build-input owner :width {:type "range" :min 0 :max 500 :labeled true}))
+                           (dom/div nil (build-input owner :height {:type "range" :min 0 :max 500 :labeled true}))
                            (dom/div #js {:style #js {:backgroundColor  (:backgroundColor app)
                                                      :width (:width app)
                                                      :height (:height app)}}
@@ -176,4 +210,11 @@
   app-view
   app-state
   {:target (. js/document (getElementById "app"))
-   :shared {:i18n (partial ->label app-ref)}})
+   :shared {:i18n app-ref}})
+
+
+(om/root
+ (make-input-comp input)
+ [{:label "Clojure" :version "1.5.1" :level 4}]
+ {:target (. js/document (getElementById "app-2"))
+  :shared {:i18n {:input {:cat "Catégorie"}}}})
