@@ -11,15 +11,7 @@
 (enable-console-print!)
 
 
-(def sch-inputs {:inputs s/Any})
-
-(def sch-chan {:chan ManyToManyChannel})
-
-
-(def sch-i18n {:i18n {:input s/Any}})
-
-(def sch-state (merge sch-inputs sch-chan {s/Any s/Any}))
-
+;;;;;;;;; i18n Utils ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
 (defn ->label
   "Translate labels or business data
@@ -36,6 +28,7 @@
    (get-in ref-data ks (str/capitalize (name (last ks))))))
 
 
+;;;;;;;;;;;;;;; Debug Utils ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
 (defn trace
   "Display the raw data."
@@ -43,7 +36,7 @@
   (om/component
    (dom/p nil (str (:label app)))))
 
-;;;;;; Generic input ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+;;;;;; Generic single input ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
 (defn e-value
   "Get value from an event"
@@ -74,6 +67,17 @@
                  (dom/label nil v))))))
 
 
+;;;;;;;;;;;;;; Complete inputs form ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+
+
+(def sch-inputs {:inputs s/Any})
+
+(def sch-chan {:chan ManyToManyChannel})
+
+
+(def sch-i18n {:i18n {:input s/Any}})
+
+(def sch-state (merge sch-inputs sch-chan {s/Any s/Any}))
 
 
 (s/defn  ^:always-validate magic-input
@@ -107,14 +111,9 @@
             {:code :level :value 0 :opts {:type "range" :min 0 :max 5 :labeled true}}])
 
 
-(defn build-init [m]
-  "Build the init map backing the inputs in the form."
-  (apply merge
-         (for  [{:keys [code value]} m]
-           {code value})))
 
 
-(build-init input)
+
 
 (def sch-conf-opts {(s/optional-key :labeled) s/Bool
                     (s/optional-key :min) s/Int
@@ -127,6 +126,12 @@
                 (s/optional-key :opts) sch-conf-opts}])
 
 
+(s/defn build-init
+  "Build the init map backing the inputs in the form."
+  [m :- sch-conf]
+  (apply merge
+         (for  [{:keys [code value]} m]
+           {code value})))
 
 (s/defn ^:always-validate make-input-comp
   "Build the input Om component based on the config"
