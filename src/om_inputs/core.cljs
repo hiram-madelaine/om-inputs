@@ -134,7 +134,7 @@
            {code value})))
 
 (s/defn ^:always-validate make-input-comp
-  "Build the input Om component based on the config"
+  "Build an input form Om component based on the config"
   [conf :- sch-conf]
   (fn [app owner]
     (reify
@@ -154,7 +154,7 @@
                              coerce (get coercers k identity)]
                          (condp = k
                            :create (do
-                                     (om/transact! app (fn [skills] (conj skills v)))
+                                     (om/transact! app #(conj % v))
                                      (om/set-state! owner [:inputs] init))
                            (om/set-state! owner [:inputs k] (coerce v))))
                        (recur)))))
