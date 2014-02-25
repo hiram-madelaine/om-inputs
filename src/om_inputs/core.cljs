@@ -10,12 +10,22 @@
 
 (enable-console-print!)
 
+;;;;;;;;;; Low level Clojure Utils ;;;;;;;;;;;;;;;
+
+(defn make-map-with-vals
+  "[{:a 1 :b 2} {:a 3 :b nil}] :a :b -> {1 2}"
+  [ms k1 k2]
+  (into {} (for [m ms
+                 :let [[v1 v2] ((juxt k1 k2) m)]
+                 :when v2]
+            [v1 v2])))
+(make-map-with-vals [{:a 1 :b 2} {:a 3 :b nil}] :a :b)
 
 ;;;;;;;;; i18n Utils ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
 (defn ->label
   "Translate labels or business data
-  If a label is not found the more precise k is used"
+  If a label is not found the more precise keyword is used"
   ([ref-data m k]
    "Find label in the ref data"
    (if-let [label (->> k
@@ -104,15 +114,11 @@
    (build-input owner k {})))
 
 
-(def input [{:code :label :value "" }
-            {:code :version :value ""}
+(def input [{:code :label :value "" :coercer (fn [n o](str/upper-case n))}
+            {:code :version :value "" :coercer (fn [n o] (if (re-matches #"[0-9]*" n) n o))}
             {:code :tier :value ""}
             {:code :cat :value "" :opts {:type "select"}}
-            {:code :level :value 0 :opts {:type "range" :min 0 :max 5 :labeled true}}])
-
-
-
-
+            {:code :level :value 4 :coercer #(js/parseInt %) :opts {:type "range" :min 0 :max 5 :labeled true}}])
 
 
 (def sch-conf-opts {(s/optional-key :labeled) s/Bool
@@ -123,15 +129,20 @@
 
 (def sch-conf [{:code s/Keyword
                 :value s/Any
+                (s/optional-key :coercer) s/Any
                 (s/optional-key :opts) sch-conf-opts}])
+
+
 
 
 (s/defn build-init
   "Build the init map backing the inputs in the form."
   [m :- sch-conf]
-  (apply merge
-         (for  [{:keys [code value]} m]
-           {code value})))
+  (make-map-with-vals m :code :value))
+
+(s/defn build-coercers
+        [m :- sch-conf]
+        (make-map-with-vals m :code :coercer))
 
 (s/defn ^:always-validate make-input-comp
   "Build an input form Om component based on the config"
@@ -143,20 +154,20 @@
                   (let [init (build-init conf)]
                     {:chan (chan)
                      :inputs init
-                     :init init
-                     :coercers {:level int}}))
+                     :coercers (build-coercers conf)}))
       om/IWillMount
       (will-mount [this]
-                  (let [{ :keys [coercers chan init] :as state} (om/get-state owner)]
+                  (let [{:keys [coercers chan inputs] :as state} (om/get-state owner)]
                     (go
                      (loop []
                        (let [[k v] (<! chan)
-                             coerce (get coercers k identity)]
+                             coerce (get coercers k (fn [n _] n))
+                             o (om/get-state owner [:inputs k])]
                          (condp = k
                            :create (do
                                      (om/transact! app #(conj % v))
-                                     (om/set-state! owner [:inputs] init))
-                           (om/set-state! owner [:inputs k] (coerce v))))
+                                     (om/set-state! owner [:inputs] inputs))
+                           (om/set-state! owner [:inputs k] (coerce v o))))
                        (recur)))))
       om/IRenderState
       (render-state [_ {:keys [chan inputs] :as state}]
@@ -167,7 +178,7 @@
                                     (dom/input #js {:type  "button"
                                                     :value (->label i18n [:input :create])
                                                     :onClick #(put! chan [:create inputs])})
-                                    (apply dom/div nil (om/build-all trace app))))))))
+                                    (apply dom/div nil (om/build-all trace app {:key :label}))))))))
 
 
 
