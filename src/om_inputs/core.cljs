@@ -46,7 +46,21 @@
   "Display the raw data."
   [app owner]
   (om/component
-   (dom/p nil (str (:label app)))))
+   (dom/div nil (pr-str app))))
+
+(defn debug [original owner opts]
+  (reify
+    om/IRender
+    (render [_]
+      (dom/div #js {:style #js {:border "1px solid #ccc"
+                                :padding "5px"}}
+        (dom/div nil
+          (dom/span nil "Data :")
+          (dom/pre #js {:style #js {:display "inline-block"}}
+            (pr-str (second original))))
+               (apply om/build* original)
+               (dom/span nil "---")))))
+
 
 ;;;;;; Generic single input ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
@@ -235,4 +249,7 @@
  (make-input-comp input)
  [{:label "Clojure" :version "1.5.1" :level 4}]
  {:target (. js/document (getElementById "app-2"))
-  :shared {:i18n {:input {:cat "Catégorie"}}}})
+  :shared {:i18n {:input {:cat "Catégorie"}}}
+   :instrument
+   (fn [f cursor m]
+     (om/build* debug [f cursor m]))})
