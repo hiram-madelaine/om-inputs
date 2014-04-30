@@ -134,7 +134,8 @@
             {:code :version :value "" :coercer (fn [n o] (if (re-matches #"[0-9]*" n) n o))}
             {:code :tier :value ""}
             {:code :cat :value "" :opts {:type "select"}}
-            {:code :level :value 4 :coercer #(js/parseInt %) :opts {:type "range" :min 0 :max 5 :labeled true}}])
+            {:code :level :value 4 :coercer #(js/parseInt %) :opts {:type "range" :min 0 :max 5 :labeled true}}
+            {:code :comment :value ""}])
 
 
 (def sch-conf-opts {(s/optional-key :labeled) s/Bool
@@ -150,15 +151,28 @@
 
 
 
-
 (s/defn build-init
   "Build the init map backing the inputs in the form."
   [m :- sch-conf]
   (make-map-with-vals m :code :value))
 
+
 (s/defn build-coercers
         [m :- sch-conf]
         (make-map-with-vals m :code :coercer))
+
+
+(defn key-value-view
+  [entry owner]
+  (om/component
+   (dom/label #js {:className "item-view"} (val entry))))
+
+
+(defn item-view
+  [item owner]
+  (om/component
+   (apply dom/span nil (om/build-all key-value-view item))))
+
 
 (s/defn ^:always-validate make-input-comp
   "Build an input form Om component based on the config"
@@ -167,10 +181,9 @@
     (reify
       om/IInitState
       (init-state [_]
-                  (let [init (build-init conf)]
-                    {:chan (chan)
-                     :inputs init
-                     :coercers (build-coercers conf)}))
+                  {:chan (chan)
+                   :inputs (build-init conf)
+                   :coercers (build-coercers conf)})
       om/IWillMount
       (will-mount [this]
                   (let [{:keys [coercers chan inputs] :as state} (om/get-state owner)]
@@ -190,66 +203,11 @@
                     (let [i18n (om/get-shared owner :i18n)]
                       (dom/fieldset #js {:className "form"}
                                     (into-array (map (fn [{:keys [code opts]}]
-                                                      (build-input owner code opts) )  conf))
+                                                      (build-input owner code opts)) conf))
                                     (dom/input #js {:type  "button"
                                                     :value (->label i18n [:input :create])
                                                     :onClick #(put! chan [:create inputs])})
-                                    (apply dom/div nil (om/build-all trace app {:key :label}))))))))
+                                    (apply dom/div nil (om/build-all item-view app))))))))
 
 
 
-
-(def app-state (atom {:text "Hello world!"
-                      :backgroundColor "blue"
-                      :width 500
-                      :height 250}))
-
-(def app-ref {:input {:width "Largeur"
-                      :height "Hauteur"
-                      :backgroundColor "Couleur"}})
-
-
-
-(defn app-view
-  [app owner]
-  (reify
-    om/IInitState
-    (init-state [_]
-                {:inputs (select-keys (om/get-props owner)[:width :height :backgroundColor])
-                 :chan (chan)})
-    om/IWillMount
-     (will-mount [this]
-                 (let [chan (om/get-state owner :chan)]
-                   (go
-                    (loop []
-                      (let [[k v] (<! chan)]
-                        (om/set-state! owner [:inputs k] v)
-                        (om/transact! app (fn [box] (assoc box k v)))
-                        (recur))))))
-    om/IRenderState
-    (render-state [_ {:keys [inputs] :as state}]
-                  (dom/div nil
-                           (build-input owner :backgroundColor {:type "color" :labeled true})
-                           (dom/div nil (build-input owner :width {:type "range" :min 0 :max 500 :labeled true}))
-                           (dom/div nil (build-input owner :height {:type "range" :min 0 :max 500 :labeled true}))
-                           (dom/div #js {:style #js {:backgroundColor  (:backgroundColor app)
-                                                     :width (:width app)
-                                                     :height (:height app)}}
-                                    (dom/h1 nil (:text app)))))))
-
-
-(om/root
-  app-view
-  app-state
-  {:target (. js/document (getElementById "app"))
-   :shared {:i18n app-ref}})
-
-
-(om/root
- (make-input-comp input)
- [{:label "Clojure" :version "1.5.1" :level 4}]
- {:target (. js/document (getElementById "app-2"))
-  :shared {:i18n {:input {:cat "Catégorie"}}}
-   :instrument
-   (fn [f cursor m]
-     (om/build* debug [f cursor m]))})
