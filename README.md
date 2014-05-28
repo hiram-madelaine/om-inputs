@@ -6,9 +6,9 @@ The idea is to generate a responsive form to build entities based on the descrip
 
 ### The description of an entity
 
-#### Mandatory data
-
 :code
 
+#### Options
 
-### i18n
+
+#### i18n
