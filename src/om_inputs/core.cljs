@@ -10,7 +10,10 @@
 
 (enable-console-print!)
 
-;;;;;;;;;; Low level Clojure Utils ;;;;;;;;;;;;;;;
+;_________________________________________________
+;                                                 |
+;          Low level Clojure Utils                |
+;_________________________________________________|
 
 (defn make-map-with-vals
   "[{:a 1 :b 2} {:a 3 :b 4}] :a :b -> {1 2, 3 4}
@@ -23,11 +26,15 @@
 
 ;;(make-map-with-vals [{:a 1 :b 2} {:a 3 :b nil}] :a :b)
 
-;;;;;;;;; i18n Utils ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+;_________________________________________________
+;                                                 |
+;          i18n Utils                             |
+;_________________________________________________|
+
 
 (defn ->label
   "Translate labels or business data
-  If a label is not found the more precise keyword is used"
+  If a label is not found the more precise keyword is used."
   ([ref-data m k]
    "Find label in the ref data"
    (if-let [label (->> k
@@ -40,7 +47,12 @@
    (get-in ref-data ks (str/capitalize (name (last ks))))))
 
 
-;;;;;;;;;;;;;;; Debug Utils ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+
+;_________________________________________________
+;                                                 |
+;          Debug Utils                            |
+;_________________________________________________|
+
 
 (defn trace
   "Display the raw data."
@@ -61,8 +73,48 @@
                (apply om/build* original)
                (dom/span nil "---")))))
 
+;_________________________________________________
+;                                                 |
+;          Schemas                                |
+;_________________________________________________|
 
-;;;;;; Generic single input ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+(def sch-inputs {:inputs s/Any})
+
+(def sch-chan {:chan ManyToManyChannel})
+
+
+(def sch-i18n {:i18n {:input s/Any}})
+
+(def sch-state (merge sch-inputs sch-chan {s/Any s/Any}))
+
+(def sch-select-data {:code s/Str
+                      :label s/Str})
+
+
+(def sch-conf-opts {(s/optional-key :labeled) s/Bool
+                    (s/optional-key :min) s/Int
+                    (s/optional-key :max) s/Int
+                    (s/optional-key :type) (s/enum "text" "range" "number" "color" "select")
+                    (s/optional-key :data) [sch-select-data]})
+
+
+(def sch-conf [{:code s/Keyword
+                :value s/Any
+                (s/optional-key :coercer) s/Any
+                (s/optional-key :opts) sch-conf-opts}])
+
+(def exemple-input [{:code :label :value "" :coercer (fn [n o](str/upper-case n))}
+                    {:code :version :value "" :coercer (fn [n o] (if (re-matches #"[0-9]*" n) n o))}
+                    {:code :tier :value ""}
+                    {:code :cat :value "" :opts {:type "select"}}
+                    {:code :level :value 4 :coercer #(js/parseInt %) :opts {:type "range" :min 0 :max 5 :labeled true}}
+                    {:code :comment :value ""}])
+
+;_________________________________________________
+;                                                 |
+;          Generic inputs                         |
+;_________________________________________________|
+
 
 (defn e-value
   "Get value from an event"
@@ -93,20 +145,18 @@
                  (dom/label nil v))))))
 
 
-;;;;;;;;;;;;;; Complete inputs form ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+;___________________________________________________________
+;                                                           |
+;          Mulitmethod to handle differents inputs form     |
+;___________________________________________________________|
 
 
-(def sch-inputs {:inputs s/Any})
-
-(def sch-chan {:chan ManyToManyChannel})
-
-
-(def sch-i18n {:i18n {:input s/Any}})
-
-(def sch-state (merge sch-inputs sch-chan {s/Any s/Any}))
+(defmulti magic-input
+  (fn [k state shared opts] (:type opts)))
 
 
-(s/defn  ^:always-validate magic-input
+
+#_(s/defmethod  ^:always-validate magic-input
         [k :- s/Keyword
          state :- sch-state
          shared :- sch-i18n
@@ -115,13 +165,33 @@
               i18n (:i18n shared)]
           (make-input chan (->label i18n [:input k]) k (k inputs) opts)))
 
+(defmethod magic-input :default
+        [k
+         state
+         shared
+         opts]
+        (let [{:keys [chan inputs]} state
+              i18n (:i18n shared)]
+          (make-input chan (->label i18n [:input k]) k (k inputs) opts)))
+
+(defmethod magic-input "select"
+  [k
+   state
+   shared
+   opts]
+  (let [{:keys [chan inputs]} state
+        i18n (:i18n shared)
+        label (->label i18n [:input k])
+        data (:data opts)
+        value (k inputs)]
+          (make-select chan label k value data)))
+
+
 (defn build-input
   "Handle the display of an input from state and push change on a channel.
    The map of inputs is expected in state under the key :inputs
    The channel is expected in state under key :chan
-   The i18n fn is expected in shared under key :i18n
-   Handle the display of an input from state and push change on a queue
-   The channel is expected in state under key :chan"
+   The i18n fn is expected in shared under key :i18n"
   ([owner k opts]
    (let [state (om/get-state owner)
          shared (om/get-shared owner)]
@@ -129,25 +199,6 @@
   ([owner k]
    (build-input owner k {})))
 
-
-(def input [{:code :label :value "" :coercer (fn [n o](str/upper-case n))}
-            {:code :version :value "" :coercer (fn [n o] (if (re-matches #"[0-9]*" n) n o))}
-            {:code :tier :value ""}
-            {:code :cat :value "" :opts {:type "select"}}
-            {:code :level :value 4 :coercer #(js/parseInt %) :opts {:type "range" :min 0 :max 5 :labeled true}}
-            {:code :comment :value ""}])
-
-
-(def sch-conf-opts {(s/optional-key :labeled) s/Bool
-                    (s/optional-key :min) s/Int
-                    (s/optional-key :max) s/Int
-                    (s/optional-key :type) (s/enum "text" "range" "number" "color" "select") })
-
-
-(def sch-conf [{:code s/Keyword
-                :value s/Any
-                (s/optional-key :coercer) s/Any
-                (s/optional-key :opts) sch-conf-opts}])
 
 
 
@@ -201,13 +252,13 @@
       om/IRenderState
       (render-state [_ {:keys [chan inputs] :as state}]
                     (let [i18n (om/get-shared owner :i18n)]
-                      (dom/fieldset #js {:className "form"}
+                      (dom/fieldset nil (dom/form #js {:className "form"}
                                     (into-array (map (fn [{:keys [code opts]}]
                                                       (build-input owner code opts)) conf))
                                     (dom/input #js {:type  "button"
                                                     :value (->label i18n [:input :create])
                                                     :onClick #(put! chan [:create inputs])})
-                                    (apply dom/div nil (om/build-all item-view app))))))))
+                                    (apply dom/div nil (om/build-all item-view app)))))))))
 
 
 
