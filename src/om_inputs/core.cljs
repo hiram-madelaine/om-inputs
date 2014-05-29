@@ -109,10 +109,9 @@
                     {:code :cat :value "" :opts {:type "select"}}
                     {:code :level :value 4 :coercer #(js/parseInt %) :opts {:type "range" :min 0 :max 5 :labeled true}}
                     {:code :comment :value ""}])
-
 ;_________________________________________________
 ;                                                 |
-;          Generic inputs                         |
+;          Events Utils                             |
 ;_________________________________________________|
 
 
@@ -121,70 +120,34 @@
   [e]
   (-> e .-target .-value))
 
-(defn make-select
-  [c l k v data]
-  (dom/span nil
-           (dom/label nil l)
-           (apply dom/select #js {:value v
-                                  :onChange #(put! c [k (e-value %)])}
-                       (dom/option #js {:value ""} "")
-                       (map (fn [{:keys [code label]}]
-                              (dom/option #js {:value code} label)) data))))
-
-(defn- make-input
-  "Low level function to make an input field with 2 ways linkage."
-  ([c l k v ]
-   (make-input c l k v {}))
-  ([c l k v  opts]
-   (let [put-chan #(put! c [k (e-value %)])]
-     (dom/span nil
-                    (dom/label nil l)
-                    (dom/input (clj->js (merge {:value v
-                                                :onChange put-chan} opts)))
-               (when (:labeled opts)
-                 (dom/label nil v))))))
-
-
 ;___________________________________________________________
 ;                                                           |
 ;          Mulitmethod to handle differents inputs form     |
 ;___________________________________________________________|
 
 
-(defmulti magic-input
-  (fn [k state shared opts] (:type opts)))
-
-
-
-#_(s/defmethod  ^:always-validate magic-input
-        [k :- s/Keyword
-         state :- sch-state
-         shared :- sch-i18n
-         opts]
-        (let [{:keys [chan inputs]} state
-              i18n (:i18n shared)]
-          (make-input chan (->label i18n [:input k]) k (k inputs) opts)))
-
-(defmethod magic-input :default
-        [k
-         state
-         shared
-         opts]
-        (let [{:keys [chan inputs]} state
-              i18n (:i18n shared)]
-          (make-input chan (->label i18n [:input k]) k (k inputs) opts)))
+(defmulti magic-input (fn [c l k v opts] (:type opts)))
 
 (defmethod magic-input "select"
-  [k
-   state
-   shared
-   opts]
-  (let [{:keys [chan inputs]} state
-        i18n (:i18n shared)
-        label (->label i18n [:input k])
-        data (:data opts)
-        value (k inputs)]
-          (make-select chan label k value data)))
+  [c l k v opts]
+  (let [data (:data opts)]
+   (dom/span nil
+           (dom/label nil l)
+           (apply dom/select #js {:value v
+                                  :onChange #(put! c [k (e-value %)])}
+                       (dom/option #js {:value ""} "")
+                       (map (fn [{:keys [code label]}]
+                              (dom/option #js {:value code} label)) data)))))
+
+(defmethod magic-input :default
+  [c l k v opts]
+  (let [put-chan #(put! c [k (e-value %)])]
+    (dom/span nil
+              (dom/label nil l)
+              (dom/input (clj->js (merge {:value v
+                                          :onChange put-chan} opts)))
+              (when (:labeled opts)
+                (dom/label nil v)))))
 
 
 (defn build-input
@@ -194,8 +157,12 @@
    The i18n fn is expected in shared under key :i18n"
   ([owner k opts]
    (let [state (om/get-state owner)
-         shared (om/get-shared owner)]
-     (magic-input k state shared opts)))
+         {:keys [chan inputs]} state
+         shared (om/get-shared owner)
+         i18n (:i18n shared)
+         label (->label i18n [:input k])
+         value (k inputs)]
+     (magic-input chan label k value opts)))
   ([owner k]
    (build-input owner k {})))
 
@@ -203,9 +170,9 @@
 
 
 (s/defn build-init
-  "Build the init map backing the inputs in the form."
-  [m :- sch-conf]
-  (make-map-with-vals m :code :value))
+  "Build the inial local state backing the inputs in the form."
+        [m :- sch-conf]
+        (make-map-with-vals m :code :value))
 
 
 (s/defn build-coercers

@@ -9,7 +9,7 @@
 
 (def input [{:code :label :value "" :coercer (fn [n o](str/upper-case n))}
             {:code :version :value "" :coercer (fn [n o] (if (re-matches #"[0-9]*" n) n o))}
-            {:code :tier :value ""}
+            {:code :tier :value "" :opts {:type "select" :data [{:code "middle" :label "Middleware"} {:code "front" :label "Front"} {:code "data" :label "Database"}]}}
             {:code :cat :value "" :opts {:type "select" :data [{:code "lang" :label "Language"} {:code "frmk" :label "Framework"}]}}
             {:code :level :value 4 :coercer #(js/parseInt %) :opts {:type "range" :min 0 :max 5 :labeled true}}
             ])
