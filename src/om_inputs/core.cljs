@@ -83,7 +83,7 @@
 (def sch-chan {:chan ManyToManyChannel})
 
 
-(def sch-i18n {:i18n {:input s/Any}})
+(def sch-i18n {:i18n {:inputs s/Any}})
 
 (def sch-state (merge sch-inputs sch-chan {s/Any s/Any}))
 
@@ -94,21 +94,22 @@
 (def sch-conf-opts {(s/optional-key :labeled) s/Bool
                     (s/optional-key :min) s/Int
                     (s/optional-key :max) s/Int
+                    (s/optional-key :step) s/Int
                     (s/optional-key :type) (s/enum "text" "range" "number" "color" "select")
                     (s/optional-key :data) [sch-select-data]})
 
 
-(def sch-conf [{:code s/Keyword
+(def sch-conf [{:field s/Keyword
                 :value s/Any
                 (s/optional-key :coercer) s/Any
                 (s/optional-key :opts) sch-conf-opts}])
 
-(def exemple-input [{:code :label :value "" :coercer (fn [n o](str/upper-case n))}
-                    {:code :version :value "" :coercer (fn [n o] (if (re-matches #"[0-9]*" n) n o))}
-                    {:code :tier :value ""}
-                    {:code :cat :value "" :opts {:type "select"}}
-                    {:code :level :value 4 :coercer #(js/parseInt %) :opts {:type "range" :min 0 :max 5 :labeled true}}
-                    {:code :comment :value ""}])
+(def exemple-input [{:field :label :value "" :coercer (fn [n o](str/upper-case n))}
+                    {:field :version :value "" :coercer (fn [n o] (if (re-matches #"[0-9]*" n) n o))}
+                    {:field :tier :value ""}
+                    {:field :cat :value "" :opts {:type "select"}}
+                    {:field :level :value 4 :coercer #(js/parseInt %) :opts {:type "range" :min 0 :max 5 :labeled true}}
+                    {:field :comment :value ""}])
 ;_________________________________________________
 ;                                                 |
 ;          Events Utils                             |
@@ -130,24 +131,28 @@
 
 (defmethod magic-input "select"
   [c l k v opts]
-  (let [data (:data opts)]
-   (dom/span nil
-           (dom/label nil l)
-           (apply dom/select #js {:value v
-                                  :onChange #(put! c [k (e-value %)])}
+  (let [data (:data opts)
+        put-chan! #(put! c [k (e-value %)])]
+   (dom/div #js {:className "form-group"}
+           (dom/label #js {:htmlFor (name k)} l)
+           (apply dom/select #js {:id (name k)
+                                  :className "form-control"
+                                  :value v
+                                  :onChange put-chan!}
                        (dom/option #js {:value ""} "")
                        (map (fn [{:keys [code label]}]
                               (dom/option #js {:value code} label)) data)))))
 
 (defmethod magic-input :default
   [c l k v opts]
-  (let [put-chan #(put! c [k (e-value %)])]
-    (dom/span nil
-              (dom/label nil l)
-              (dom/input (clj->js (merge {:value v
-                                          :onChange put-chan} opts)))
-              (when (:labeled opts)
-                (dom/label nil v)))))
+  (let [put-chan! #(put! c [k (e-value %)])]
+    (dom/div #js {:className "form-group"}
+              (dom/label #js {:htmlFor (name k)} l)
+              (when (:labeled opts) (dom/span #js {} v))
+              (dom/input (clj->js (merge {:id (name k)
+                                          :className "form-control"
+                                          :value v
+                                          :onChange put-chan!} opts))))))
 
 
 (defn build-input
@@ -160,24 +165,23 @@
          {:keys [chan inputs]} state
          shared (om/get-shared owner)
          i18n (:i18n shared)
-         label (->label i18n [:input k])
+         label (->label i18n [:inputs k])
          value (k inputs)]
      (magic-input chan label k value opts)))
   ([owner k]
    (build-input owner k {})))
 
 
-
-
 (s/defn build-init
   "Build the inial local state backing the inputs in the form."
         [m :- sch-conf]
-        (make-map-with-vals m :code :value))
+        (make-map-with-vals m :field :value))
 
 
 (s/defn build-coercers
+ "Build the coercers map"
         [m :- sch-conf]
-        (make-map-with-vals m :code :coercer))
+        (make-map-with-vals m :field :coercer))
 
 
 (defn key-value-view
@@ -194,7 +198,8 @@
 
 (s/defn ^:always-validate make-input-comp
   "Build an input form Om component based on the config"
-  [conf :- sch-conf]
+  [conf :- sch-conf
+   action]
   (fn [app owner]
     (reify
       om/IInitState
@@ -212,20 +217,21 @@
                              o (om/get-state owner [:inputs k])]
                          (condp = k
                            :create (do
-                                     (om/transact! app #(conj % v))
+                                     (action app owner v)
                                      (om/set-state! owner [:inputs] inputs))
                            (om/set-state! owner [:inputs k] (coerce v o))))
                        (recur)))))
       om/IRenderState
       (render-state [_ {:keys [chan inputs] :as state}]
                     (let [i18n (om/get-shared owner :i18n)]
-                      (dom/fieldset nil (dom/form #js {:className "form"}
-                                    (into-array (map (fn [{:keys [code opts]}]
-                                                      (build-input owner code opts)) conf))
+                      (dom/fieldset nil (dom/form #js {:className "form"
+                                                       :role "form"}
+                                    (into-array (map (fn [{:keys [field opts]}]
+                                                      (build-input owner field opts)) conf))
                                     (dom/input #js {:type  "button"
-                                                    :value (->label i18n [:input :create])
-                                                    :onClick #(put! chan [:create inputs])})
-                                    (apply dom/div nil (om/build-all item-view app)))))))))
+                                                    :className "btn btn-primary"
+                                                    :value (->label i18n [:inputs :action])
+                                                    :onClick #(put! chan [:create inputs])}))))))))
 
 
 

@@ -1,0 +1,34 @@
+body {
+  background-color : rgb(60,60,60);
+  color : lightgrey;
+  font-family : Helvetica;
+}
+
+.form {
+  display : flex;
+  flex-direction : column;
+}
+
+.form-group {
+  display : flex;
+  justify-content: flex-start;
+    flex-direction: row;
+}
+
+button, input, select, textarea {
+  font-family : inherit;
+  font-size   : 100%;
+}
+
+input {
+  border-radius : 3px;
+  padding : 3px;
+
+}
+
+label::after {
+
+  content : " : ";
+}
+
+
