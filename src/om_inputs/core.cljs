@@ -112,7 +112,7 @@
                     {:field :comment :value ""}])
 ;_________________________________________________
 ;                                                 |
-;          Events Utils                             |
+;          Events Utils                           |
 ;_________________________________________________|
 
 
@@ -127,32 +127,19 @@
 ;___________________________________________________________|
 
 
-(defmulti magic-input (fn [c l k v opts] (:type opts)))
+(defmulti magic-input (fn [attrs opts] (:type opts)))
 
 (defmethod magic-input "select"
-  [c l k v opts]
-  (let [data (:data opts)
-        put-chan! #(put! c [k (e-value %)])]
-   (dom/div #js {:className "form-group"}
-           (dom/label #js {:htmlFor (name k)} l)
-           (apply dom/select #js {:id (name k)
-                                  :className "form-control"
-                                  :value v
-                                  :onChange put-chan!}
+  [attrs opts]
+  (let [data (:data opts)]
+   (apply dom/select (clj->js attrs)
                        (dom/option #js {:value ""} "")
                        (map (fn [{:keys [code label]}]
-                              (dom/option #js {:value code} label)) data)))))
+                              (dom/option #js {:value code} label)) data))))
 
 (defmethod magic-input :default
-  [c l k v opts]
-  (let [put-chan! #(put! c [k (e-value %)])]
-    (dom/div #js {:className "form-group"}
-              (dom/label #js {:htmlFor (name k)} l)
-              (when (:labeled opts) (dom/span #js {} v))
-              (dom/input (clj->js (merge {:id (name k)
-                                          :className "form-control"
-                                          :value v
-                                          :onChange put-chan!} opts))))))
+  [attrs opts]
+  (dom/input (clj->js (merge attrs opts))))
 
 
 (defn build-input
@@ -163,11 +150,17 @@
   ([owner k opts]
    (let [state (om/get-state owner)
          {:keys [chan inputs]} state
-         shared (om/get-shared owner)
-         i18n (:i18n shared)
+         i18n (om/get-shared owner [:i18n] )
          label (->label i18n [:inputs k])
-         value (k inputs)]
-     (magic-input chan label k value opts)))
+         value (k inputs)
+         attrs {:id (name k)
+                :className "form-control"
+                :value value
+                :onChange #(put! chan [k (e-value %)])}]
+     (dom/div #js {:className "form-group"}
+           (dom/label #js {:htmlFor (name k)} label)
+              (when (:labeled opts) (dom/span #js {} value))
+              (magic-input attrs opts))))
   ([owner k]
    (build-input owner k {})))
 
