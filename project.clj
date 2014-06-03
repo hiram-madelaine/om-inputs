@@ -7,7 +7,7 @@
                  [org.clojure/core.async "0.1.267.0-0d7780-alpha"]
                  [om "0.6.4"]
                  [prismatic/dommy "0.1.2"]
-                 [prismatic/schema "0.2.1"]
+                 [prismatic/schema "0.2.3"]
                  [com.facebook/react "0.9.0"]]
 
   :plugins [[lein-cljsbuild "1.0.2"]]
