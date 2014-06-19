@@ -19,7 +19,7 @@
 (def opts {:order [:traversee/numero :traversee/code :traversee/itineraire :traversee/navire  :traversee/duree]})
 
 
-(def generated-view (make-input-comp :creation-traversee rap-sch validation-handler opts))
+(def generated-view (make-input-comp :creation-traversee rap-sch #(js/alert %3) opts))
 
 
 (def lang-sch {:lang (s/enum "en" "fr")})
