@@ -7,23 +7,10 @@
             [cljs.core.async.impl.channels :refer [ManyToManyChannel]]
             [schema.core :as s]
             [schema.coerce :as coerce]
-            [clojure.string :as str]))
+            [clojure.string :as str]
+            [clojure.set :as st]))
 
 (enable-console-print!)
-
-;_________________________________________________
-;                                                 |
-;          Low level Clojure Utils                |
-;_________________________________________________|
-
-
-;_________________________________________________
-;                                                 |
-;          i18n Utils                             |
-;_________________________________________________|
-
-
-
 
 
 ;_________________________________________________
@@ -57,12 +44,7 @@
                 (s/optional-key :coercer) s/Any
                 (s/optional-key :opts) sch-conf-opts}])
 
-(def exemple-input [{:field :label :value "" :coercer (fn [n o](str/upper-case n))}
-                    {:field :version :value "" :coercer (fn [n o] (if (re-matches #"[0-9]*" n) n o))}
-                    {:field :tier :value ""}
-                    {:field :cat :value "" :opts {:type "select"}}
-                    {:field :level :value 4 :coercer #(js/parseInt %) :opts {:type "range" :min 0 :max 5 :labeled true}}
-                    {:field :comment :value ""}])
+
 ;_________________________________________________
 ;                                                 |
 ;          Events Utils                           |
@@ -74,26 +56,102 @@
   [e]
   (-> e .-target .-value))
 
+;_________________________________________________
+;                                                 |
+;       prismatic/Schema related Utils            |
+;_________________________________________________|
+
+(defn empty-string-coercer
+  "Do not validate an empty string as a valid s/Str"
+  [s]
+  (if (str/blank? s) nil s))
+
+
+(def validation-coercer
+  (merge  {s/Str empty-string-coercer} coerce/+string-coercions+))
+
+
+(defn sch-type [t]
+  "indicate the type a key must conform to."
+  (condp = (type t)
+    schema.core.Predicate (:p? t)
+    schema.core.EnumSchema "enum"
+    "other"))
+
+ (defn only-integer
+   "Only authorize integer or empty string."
+  [n o]
+  (if (str/blank? n)
+   ""
+   (let [r (js/parseInt n)]
+                (if (js/isNaN r)
+                  o
+                  r))))
+
+
+(def coertion-fns
+  {integer? only-integer})
+
+(s/defn build-coercer
+  "Build the corecion map field->coercion-fn"
+  [sch]
+  (reduce (fn[acc [k v]] (if-let [cfn (get coertion-fns (sch-type v))]
+                          (assoc acc k cfn)
+                           acc) ) {} sch))
+
+
 ;___________________________________________________________
 ;                                                           |
-;          Mulitmethod to handle differents inputs form     |
+;          Mulitmethod to handle different inputs form      |
 ;___________________________________________________________|
 
 
-(defmulti magic-input (fn [k t attrs data] (type t)))
+(defmulti magic-input (fn [k t attrs data]
+                        (sch-type t)))
 
 
 
-(defmethod magic-input schema.core.EnumSchema
-  [k t  attrs data]
+(defmethod magic-input "enum"
+  [k t attrs data]
   (apply dom/select (clj->js attrs)
                        (dom/option #js {:value ""} "")
                        (map (fn [code]
-                              (dom/option #js {:value code} (get data code code))) (:vs t))))
+                              (dom/option #js {:value code} (get data code (if (keyword? code) (name code) code)))) (:vs t))))
+
+
+#_(defmethod magic-input integer?
+ [k t attrs data]
+  (dom/input (clj->js (merge {:type "number"} attrs))))
+
 
 (defmethod magic-input :default
   [k t attrs data]
   (dom/input (clj->js attrs)))
+
+
+
+;___________________________________________________________
+;                                                           |
+;          Errors state handler                             |
+;___________________________________________________________|
+
+
+
+(s/defn ^:always-validate handle-errors
+  "Set valid to false for each key in errors, true if absent"
+  [state :- {s/Keyword {:value s/Any
+                        (s/optional-key :valid) s/Bool}}
+   errs :- {s/Keyword s/Any}]
+  (let [err-ks (set (keys errs))
+        all-ks (set (keys state))
+        valid-ks (st/difference all-ks err-ks)
+        state (reduce (fn [s e] (assoc-in s [e :valid] false)) state err-ks)]
+    (reduce (fn [s e] (assoc-in s [e :valid] true)) state valid-ks)))
+
+;___________________________________________________________
+;                                                           |
+;          Component builders                               |
+;___________________________________________________________|
 
 
 (defn build-input
@@ -103,85 +161,93 @@
    The i18n fn is expected in shared under key :i18n"
   ([owner n k t opts]
    (let [
-         state (om/get-state owner)
-         {:keys [chan inputs]} state
-         i18n (om/get-shared owner [:i18n] )
+         {:keys [chan inputs]} (om/get-state owner)
+         lang (:lang (om/get-props owner))
+         i18n (om/get-shared owner [:i18n lang] )
          label (get-in i18n [n k :label] (name k))
-         data (get-in i18n [n k :data])
-         value (k inputs)
+         value (get-in inputs [k :value])
+         error (when-not (get-in inputs [k :valid] true) "has-error has-feedback")
+         valid (when (get-in inputs [k :valid]) "has-success")
          attrs {:id (name k)
                 :className "form-control"
                 :value value
-                :onChange #(put! chan [k (e-value %)])}]
-     (dom/div #js {:className "form-group"}
-           (dom/label #js {:htmlFor (name k)} label)
+                :onChange #(put! chan [k (e-value %)]) }]
+     (dom/div #js {:className (str/join " " ["form-group" error valid])}
+           (dom/label #js {:htmlFor (name k)
+                           :className "control-label"} label)
               (when (:labeled opts) (dom/span #js {} value))
-              (magic-input k t attrs data))))
+              (magic-input k t attrs (get-in i18n [n k :data])))))
   ([owner n k t]
    (build-input owner n k t {})))
-
 
 
 (s/defn build-init
   "Build the inial local state backing the inputs in the form."
         [sch]
         (into {} (for [[k t] sch]
-          [k ""])))
+          [k {:value ""}])))
 
-
-
-(defn key-value-view
-  [entry owner]
-  (om/component
-   (dom/label #js {:className "item-view"} (val entry))))
-
-
-(defn item-view
-  [item owner]
-  (om/component
-   (apply dom/span nil (om/build-all key-value-view item))))
 
 
 (s/defn make-input-comp
   "Build an input form Om component based on the config"
-  [comp-name
-   conf
-   action]
-  (let [input-coercer (coerce/coercer conf coerce/json-coercion-matcher)]
-   (fn [app owner]
-    (reify
-      om/IInitState
-      (init-state [_]
-                  {:chan (chan)
-                   :inputs (build-init conf)
-                   :coercers {}})
-      om/IWillMount
-      (will-mount [this]
-                  (let [{:keys [coercers chan inputs] :as state} (om/get-state owner)]
-                    (go
-                     (loop []
-                       (let [[k v] (<! chan)
-                             coerce (get coercers k (fn [n _] n))
-                             o (om/get-state owner [:inputs k])]
-                         (condp = k
-                           :create (let [res (input-coercer v)]
-                                     (if (:error res)
-                                      (prn (:error res))
-                                      (action app owner res))
-                                     (om/set-state! owner [:inputs] inputs))
-                           (om/set-state! owner [:inputs k] (coerce v o))))
-                       (recur)))))
-      om/IRenderState
-      (render-state [_ {:keys [chan inputs] :as state}]
-                    (let [i18n (om/get-shared owner :i18n)]
-                      (dom/fieldset nil (dom/form #js {:className "form"
-                                                       :role "form"}
-                                    (into-array (map (fn [[k t]]
-                                                      (build-input owner comp-name k t)) conf))
-                                    (dom/input #js {:type  "button"
-                                                    :className "btn btn-primary"
-                                                    :value (get-in i18n [comp-name :action])
-                                                    :onClick #(put! chan [:create inputs])})))))))))
+  ([comp-name
+    conf
+    action]
+   (make-input-comp comp-name conf action {}))
+  ([comp-name
+    conf
+    action
+    opts]
+   (let [order (:order opts)
+         input-coercer (coerce/coercer conf validation-coercer)]
+     (fn [app owner]
+       (reify
+         om/IDisplayName
+         (display-name [_]
+                       (name comp-name))
+         om/IInitState
+         (init-state [_]
+                     {:chan (chan)
+                      :inputs (build-init conf)
+                      :coercers (build-coercer conf)})
+         om/IWillMount
+         (will-mount [this]
+                     (let [{:keys [coercers chan inputs] :as state} (om/get-state owner)]
+                       (go
+                        (loop []
+                          (let [[k v] (<! chan)]
+                            (condp = k
+                              :create (let [raw (into {} (for [[k m] v] {k (:value m)} ))
+                                            res (input-coercer raw)]
+                                        (if-let  [errs (:error res)]
+                                          (let [new-state (handle-errors v errs)]
+                                            (om/set-state! owner [:inputs] new-state))
+                                          (do
+                                            (om/set-state! owner [:inputs] inputs)
+                                            (action app owner res))))
+                              (let [coerce (get coercers k (fn [n _] n))
+                                    old-val (om/get-state owner [:inputs k :value])]
+                               (om/set-state! owner [:inputs k :value] (coerce v old-val)))))
+                          (recur)))))
+         om/IWillUpdate
+         (will-update [this props state]
+                         )
+         om/IRenderState
+         (render-state [_ {:keys [chan inputs] :as state}]
+                       (let [i18n (om/get-shared owner :i18n)
+                             lang (:lang app)]
+                         (dom/fieldset nil (dom/form #js {:className "form"
+                                                          :role "form"}
+                                                     (into-array (if order
+                                                                  (map (fn [o]
+                                                                         (build-input owner comp-name o (o conf))) order)
+                                                                  (map (fn [[k t]]
+                                                                        (build-input owner comp-name k t)) conf)))
+                                                     (dom/input #js {:type  "button"
+                                                                     :className "btn btn-primary"
+                                                                     :value (get-in i18n [lang comp-name :action])
+                                                                     :onClick #(put! chan [:create inputs])}))))))))))
 
 
 

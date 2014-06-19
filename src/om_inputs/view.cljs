@@ -7,53 +7,96 @@
     [schema.core :as s]))
 
 
-
-(def input [{:field :label :value "" :coercer (fn [n o](str/upper-case n))}
-            {:field :version :value "" :coercer (fn [n o] (if (re-matches #"[0-9]*" n) n o))}
-            {:field :tier :value "" :opts {:type "select" :data [{:code "middle" :label "Middleware"} {:code "front" :label "Front"} {:code "data" :label "Database"}]}}
-            {:field :cat :value "" :opts {:type "select" :data [{:code "lang" :label "Language"} {:code "frmk" :label "Framework"}]}}
-            {:field :level :value 0 :coercer #(js/parseInt %) :opts {:type "range" :min 0 :max 5 :labeled true}}
-            ])
-
-
 (def rap-sch {:traversee/numero s/Str
-              :traversee/navire (s/enum "BER" "ROD")
-              :traversee/code s/Str
-              :traversee/itineraire (s/enum "CALDOV" "DOVCAL")
-              :traversee/duree s/Int #_(apply s/enum (map str (range 90 120 10)))
-              :traversee/departProgramme s/Inst
-              })
+               :traversee/navire (s/enum "BER" "ROD")
+               :traversee/code s/Str
+               :traversee/itineraire (s/enum "CALDOV" "DOVCAL")
+               :traversee/duree s/Int #_(apply s/enum (map str (range 90 120 10)))
+               ;:traversee/departProgramme s/Inst
+               })
 
-(def generated-view (make-input-comp :creation rap-sch (fn [app owner v] (js/alert v)) #_(fn [app v](om/transact! app #(conj % v)))) )
 
+(def opts {:order [:traversee/numero :traversee/code :traversee/itineraire :traversee/navire  :traversee/duree]})
+
+
+(def generated-view (make-input-comp :creation-traversee rap-sch validation-handler opts))
+
+
+(def lang-sch {:lang (s/enum "en" "fr")})
+
+
+(def lang-view (make-input-comp :language lang-sch  (fn [app owner v] (om/transact! app (fn [app] (merge app v)) ))))
 
 (defn search-view
   [app owner]
-  (om/component
-   (dom/div #js {:style #js {:width "350px"
-                             :margin "5px"}}
-            (om/build generated-view app))))
+  (reify
+    om/IRender
+    (render [this]
+            (dom/div #js {:style #js {:width "350px"
+                                      :margin "5px"}}
+                     (om/build generated-view app)))))
+
+
+(def app-state (atom {:lang "fr"}))
+
+
+(defn app-view
+  [app owner]
+  (reify
+    om/IRender
+    (render [this]
+     (dom/div nil
+             (om/build lang-view app)
+             (om/build search-view app)))))
 
 
 (om/root
- search-view
- [{:label "Clojure" :version "1.5.1" :level 4}]
- {:target (. js/document (getElementById "app-2"))
-  :shared {:i18n {:creation {:action "Creation"
-                             :traversee/code {:label "Code traversée"}
-                             :traversee/itineraire {:label "Itinéraire"
-                                                    :data {"CALDOV" "Calais->Douvres"
-                                                           "DOVCAL" "Douvres->Calais"}}
-                             :traversee/numero {:label "Numéro"}
-                             :traversee/duree {:label "Durée"}
-                             :traversee/navire {:label "Navire"
-                                                :data {"ROD" "Rodin"
-                                                       "BER" "Berlioz"
-                                                       "NPC" "Nord-Pas-de-Calais"}}
-                             :traversee/departProgramme {:label "Départ"}}
+ app-view
+ app-state
+ {:target (. js/document (getElementById "app"))
+  :shared {:i18n {"fr" {:language {:action "Choix de langue"
+                                   :lang {:label "Langages"
+                                          :data {"en" "Anglais"
+                                                 "fr" "Français"}}}
+                        :creation-traversee
+                        {:action "Création"
+                         :traversee/code {:label "Code traversée"}
+                         :traversee/itineraire {:label "Itinéraire"
+                                                :data {"CALDOV" "Calais->Douvres"
+                                                       "DOVCAL" "Douvres->Calais"}}
+                         :traversee/numero {:label "Numéro"}
+                         :traversee/duree {:label "Durée"}
+                         :traversee/navire {:label "Navire"
+                                            :data {"ROD" "Rodin"
+                                                   "BER" "Berlioz"
+                                                   "NPC" "Nord-Pas-de-Calais"}}
+                         :traversee/departProgramme {:label "Départ"}}
 
-                  :inputs {
-                           :cat "Catégorie"
-                           :label "Libellé"
-                           :level "Niveau"
-                           :action "Recherche"}}}})
+                        :inputs {
+                                 :cat "Catégorie"
+                                 :label "Libellé"
+                                 :level "Niveau"
+                                 :action "Recherche"}}
+                  "en" {:language {:action "Change language"
+                                   :lang {:label "Languages"
+                                          :data {"en" "English"
+                                                 "fr" "French"}}}
+                        :creation-traversee
+                        {:action "Creation"
+                         :traversee/code {:label "Crossing Code"}
+                         :traversee/itineraire {:label "Outward route"
+                                                :data {"CALDOV" "Calais->Dover"
+                                                       "DOVCAL" "Dover->Calais"}}
+                         :traversee/numero {:label "Number"}
+                         :traversee/duree {:label "Duration"}
+                         :traversee/navire {:label "Navire"
+                                            :data {"ROD" "Rodin"
+                                                   "BER" "Berlioz"
+                                                   "NPC" "Nord-Pas-de-Calais"}}
+                         :traversee/departProgramme {:label "Départ"}}
+
+                        :inputs {
+                                 :cat "Catégorie"
+                                 :label "Libellé"
+                                 :level "Niveau"
+                                 :action "Recherche"}}}}})
