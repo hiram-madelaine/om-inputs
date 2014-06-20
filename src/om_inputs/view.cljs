@@ -16,6 +16,8 @@
                })
 
 
+
+
 (def opts {:order [:traversee/numero :traversee/code :traversee/itineraire :traversee/navire  :traversee/duree]})
 
 
@@ -100,3 +102,23 @@
                                  :label "Libellé"
                                  :level "Niveau"
                                  :action "Recherche"}}}}})
+
+
+
+
+(def sch-person {:person/first-name s/Str
+                 :person/name s/Str
+                 (s/optional-key :person/size) s/Int
+                 (s/optional-key :person/gender) (s/enum "M" "Ms")})
+
+
+
+(def person-input-view (make-input-comp :create-person sch-person #(js/alert %3) ))
+
+
+(om/root
+ person-input-view
+ {}
+ {:target (. js/document (getElementById "person"))})
+
+

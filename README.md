@@ -1,12 +1,12 @@
 # The goal of this library is to rapidly prototype UI with Om/React
 
-The library generates responsive components based on a description of the data.
+The library generates responsive components based on data description.
 
 The library uses [Prismatic/Schema](https://github.com/Prismatic/schema) to describe the data.
 
 Using Schema allows the :
 * Validation of the data ;
-* Coercion of String to types.
+* Coercion of String to proper types.
 
 ## How does it work
 
@@ -34,21 +34,33 @@ The name is used :
 The fields of a component are described with Schema :
 
 ```
-(def form {:person/name s/Str
-           :person/size s/Int
-           :person/gender (s/enum "M" "Ms")})
+(def sch-person {:person/first-name s/Str
+                 :person/name s/Str
+                 (s/optional-key :person/size) s/Int
+                 (s/optional-key :person/gender) (s/enum "M" "Ms")})
 ```
 
 ### Translation of the Schema into UI.
 
 
+#### The form inputs
+
 Each entry of a schema generate a field in the form.
-The example schema will produce a form with three input fields :
+The example schema will produce a form with these input fields :
 
-* An input of type text for :person/name
-* An input that allows only Integer for :person/size
-* A select that that present the choices "M" and "Ms"
+* A mandatory input of type text for :person/first-name ;
+* A mandatory input of type text for :person/name ;
+* An optional input that allows only Integer for :person/size ;
+* An optional select that that present the choices "M" and "Ms" ;
+* A validation button that trigger the callback.
 
+#### The validation
+
+
+When clicking the action button, the form is validated according to the Schema :
+
+* A required input must have a non blank value ;
+* A coercion appends if needed for type different than s/Str
 
 
 
@@ -56,3 +68,5 @@ The example schema will produce a form with three input fields :
 
 
 #### i18n
+
+It is possible to provide the labels in multiple languages.
