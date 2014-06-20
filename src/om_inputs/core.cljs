@@ -45,9 +45,9 @@
                 (s/optional-key :opts) sch-conf-opts}])
 
 
-(def sch-local-state {:value s/Any
-                      :required s/Bool
-                      s/Keyword {(s/optional-key :valid) s/Bool}})
+(def sch-local-state {s/Keyword {:value s/Any
+                                 :required s/Bool
+                                 (s/optional-key :valid) s/Bool}})
 
 
 ;_________________________________________________
@@ -158,11 +158,9 @@
 
 
 
-(s/defn ^:always-validate handle-errors
+(s/defn ^:always-validate handle-errors :- sch-local-state
   "Set valid to false for each key in errors, true if absent"
-  [state :- {s/Keyword {:value s/Any
-                        (s/optional-key :valid) s/Bool
-                        :required s/Bool}}
+  [state :- sch-local-state
    errs :- {s/Keyword s/Any}]
   (let [err-ks (set (keys errs))
         all-ks (set (keys state))
@@ -204,7 +202,7 @@
 
 
 
-(s/defn build-init :- sch-local-state
+(s/defn ^:always-validate build-init :- sch-local-state
   "Build the inial local state backing the inputs in the form."
   [sch]
   (into {} (for [[k t] sch
