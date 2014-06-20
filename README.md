@@ -25,7 +25,7 @@ To build a component we need :
 
 The name is used :
 
-* as the React display name;
+* as the React.js display name;
 * To differentiate components in the UI.
 
 
@@ -39,6 +39,27 @@ The fields of a component are described with Schema :
                  (s/optional-key :person/size) s/Int
                  (s/optional-key :person/gender) (s/enum "M" "Ms")})
 ```
+
+#### The calback function
+
+The callback function takes the cursor app state, the owner and the entity.
+
+`(fn [app owner entity])`
+
+
+### Build an Om input component
+
+To build an Om input component, just call the function `make-input-comp` with the required parameters :
+- A keyword for the component name
+- A Prismatic/Schema
+- a callback function
+
+In this example we build the component :create-person with the Schema seen previously and the callback simply diplay the created map :
+
+```
+(def person-input-view (make-input-comp :create-person sch-person #(js/alert %3)))
+```
+
 
 ### Translation of the Schema into UI.
 
@@ -70,3 +91,16 @@ When clicking the action button, the form is validated according to the Schema :
 #### i18n
 
 It is possible to provide the labels in multiple languages.
+Just put a map in the shared data :
+```
+(om/root
+ person-input-view
+ {:lang "fr"}
+ {:target (. js/document (getElementById "person"))
+  :shared {:i18n {"fr" {:create-person {:action "Créer personne"
+                                       :person/name {:label "Nom"}
+                                       :person/first-name {:label "Prénom"}
+                                       :person/size {:label "Taille"}
+                                       :person/gender {:label "Genre"}}}}}})
+```
+

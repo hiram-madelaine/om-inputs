@@ -118,7 +118,12 @@
 
 (om/root
  person-input-view
- {}
- {:target (. js/document (getElementById "person"))})
+ {:lang "fr"}
+ {:target (. js/document (getElementById "person"))
+  :shared {:i18n {"fr" {:create-person {:action "Créer personne"
+                                       :person/name {:label "Nom"}
+                                       :person/first-name {:label "Prénom"}
+                                       :person/size {:label "Taille"}
+                                       :person/gender {:label "Genre"}}}}}})
 
 
