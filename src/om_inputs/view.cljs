@@ -124,6 +124,8 @@
                                        :person/name {:label "Nom"}
                                        :person/first-name {:label "Prénom"}
                                        :person/size {:label "Taille"}
-                                       :person/gender {:label "Genre"}}}}}})
+                                       :person/gender {:label "Genre"
+                                                       :data {"M" "Monsieur"
+                                                              "Ms" "Madame"}}}}}}})
 
 
