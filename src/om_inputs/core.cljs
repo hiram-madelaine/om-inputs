@@ -45,6 +45,11 @@
                 (s/optional-key :opts) sch-conf-opts}])
 
 
+(def sch-local-state {:value s/Any
+                      :required s/Bool
+                      s/Keyword {(s/optional-key :valid) s/Bool}})
+
+
 ;_________________________________________________
 ;                                                 |
 ;          Events Utils                           |
@@ -60,6 +65,21 @@
 ;                                                 |
 ;       prismatic/Schema related Utils            |
 ;_________________________________________________|
+
+(defprotocol Required
+  (required? [this]))
+
+(extend-protocol Required
+  schema.core.OptionalKey
+  (required? [this]
+             false)
+  schema.core.RequiredKey
+  (required? [this]
+             true)
+  Keyword
+  (required? [k]
+             true))
+
 
 (defn empty-string-coercer
   "Do not validate an empty string as a valid s/Str"
@@ -95,9 +115,10 @@
 (s/defn build-coercer
   "Build the corecion map field->coercion-fn"
   [sch]
-  (reduce (fn[acc [k v]] (if-let [cfn (get coertion-fns (sch-type v))]
-                          (assoc acc k cfn)
-                           acc) ) {} sch))
+  (reduce (fn[acc [k v]]
+            (if-let [cfn (get coertion-fns (sch-type v))]
+                          (assoc acc (get k :k k) cfn)
+                           acc)) {} sch))
 
 
 ;___________________________________________________________
@@ -140,7 +161,8 @@
 (s/defn ^:always-validate handle-errors
   "Set valid to false for each key in errors, true if absent"
   [state :- {s/Keyword {:value s/Any
-                        (s/optional-key :valid) s/Bool}}
+                        (s/optional-key :valid) s/Bool
+                        :required s/Bool}}
    errs :- {s/Keyword s/Any}]
   (let [err-ks (set (keys errs))
         all-ks (set (keys state))
@@ -181,11 +203,14 @@
    (build-input owner n k t {})))
 
 
-(s/defn build-init
+
+(s/defn build-init :- sch-local-state
   "Build the inial local state backing the inputs in the form."
-        [sch]
-        (into {} (for [[k t] sch]
-          [k {:value ""}])))
+  [sch]
+  (into {} (for [[k t] sch
+                 :let [fk (get k :k k)]]
+             [fk {:value ""
+                  :required (required? k)}])))
 
 
 
@@ -218,7 +243,11 @@
                         (loop []
                           (let [[k v] (<! chan)]
                             (condp = k
-                              :create (let [raw (into {} (for [[k m] v] {k (:value m)} ))
+                              :create (let [raw (into {} (for [[k m] v
+                                                               :let [in (:value m)
+                                                                     req (:required m)]
+                                                               :when (or req (not (str/blank? in)))]
+                                                           {k (:value m)} ))
                                             res (input-coercer raw)]
                                         (if-let  [errs (:error res)]
                                           (let [new-state (handle-errors v errs)]
@@ -243,10 +272,10 @@
                                                                   (map (fn [o]
                                                                          (build-input owner comp-name o (o conf))) order)
                                                                   (map (fn [[k t]]
-                                                                        (build-input owner comp-name k t)) conf)))
+                                                                        (build-input owner comp-name (get k :k k) t)) conf)))
                                                      (dom/input #js {:type  "button"
                                                                      :className "btn btn-primary"
-                                                                     :value (get-in i18n [lang comp-name :action])
+                                                                     :value (get-in i18n [lang comp-name :action] (str (name comp-name) " action"))
                                                                      :onClick #(put! chan [:create inputs])}))))))))))
 
 
