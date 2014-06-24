@@ -36,6 +36,7 @@ The fields of a component are described with Schema :
 ```
 (def sch-person {:person/first-name s/Str
                  :person/name s/Str
+                 (s/optional-key :person/birthdate) s/Inst
                  (s/optional-key :person/size) s/Int
                  (s/optional-key :person/gender) (s/enum "M" "Ms")})
 ```
@@ -63,6 +64,13 @@ In this example we build the component :create-person with the Schema seen previ
 
 ### Translation of the Schema into UI.
 
+#### Supported Schema types
+
+* s/Str
+* s/Int
+* s/Inst
+* s/enum
+
 
 #### The form inputs
 
@@ -71,6 +79,7 @@ The example schema will produce a form with these input fields :
 
 * A mandatory input of type text for :person/first-name ;
 * A mandatory input of type text for :person/name ;
+* An optional date input for the :person/birthdate ;
 * An optional input that allows only Integer for :person/size ;
 * An optional select that that present the choices "M" and "Ms" ;
 * A validation button that trigger the callback.
@@ -92,17 +101,36 @@ When clicking the action button, the form is validated according to the Schema :
 
 It is possible to provide the labels in multiple languages.
 Just put a map in the shared data :
+
 ```
 (om/root
- person-input-view
- {:lang "fr"}
+ app-view
+ app-state
  {:target (. js/document (getElementById "person"))
-  :shared {:i18n {"fr" {:create-person {:action "Créer personne"
+  :shared {:i18n {"en" {:language {:action "Change language"
+                                   :lang {:label "Language"
+                                          :data {"en" "English"
+                                                 "fr" "French"}}}
+                        :create-person {:action "Create person"
+                                        :person/name {:label "Name"}
+                                        :person/birthdate {:label "Birthday"}
+                                        :person/first-name {:label "Firstname"}
+                                        :person/size {:label "Size"}
+                                        :person/gender {:label "Gender"
+                                                        :data {"M" "Mister"
+                                                               "Ms" "Miss"}}}}
+                  "fr" {:language {:action "Choix de la langue"
+                                   :lang {:label "Langue"
+                                          :data {"en" "Anglais"
+                                                 "fr" "Français"}}}
+                        :create-person {:action "Créer personne"
                                        :person/name {:label "Nom"}
                                        :person/first-name {:label "Prénom"}
+                                       :person/birthdate {:label "Date de naissance"}
                                        :person/size {:label "Taille"}
                                        :person/gender {:label "Genre"
                                                        :data {"M" "Monsieur"
                                                               "Ms" "Madame"}}}}}}})
+
 ```
 

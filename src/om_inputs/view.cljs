@@ -53,6 +53,7 @@
                                                  "fr" "French"}}}
                         :create-person {:action "Create person"
                                         :person/name {:label "Name"}
+                                        :person/birthdate {:label "Birthday"}
                                         :person/first-name {:label "Firstname"}
                                         :person/size {:label "Size"}
                                         :person/gender {:label "Gender"
@@ -65,6 +66,7 @@
                         :create-person {:action "Créer personne"
                                        :person/name {:label "Nom"}
                                        :person/first-name {:label "Prénom"}
+                                       :person/birthdate {:label "Date de naissance"}
                                        :person/size {:label "Taille"}
                                        :person/gender {:label "Genre"
                                                        :data {"M" "Monsieur"
