@@ -4,7 +4,7 @@
    [om.dom :as dom :include-macros true]
    [om-inputs.core :as in :refer [build-input make-input-comp]]
    [clojure.string :as str]
-    [schema.core :as s]))
+   [schema.core :as s]))
 
 
 (def opts {:order []})
@@ -23,6 +23,7 @@
 
 (def sch-person {:person/first-name s/Str
                  :person/name s/Str
+                 (s/optional-key :person/birthdate) s/Inst
                  (s/optional-key :person/size) s/Int
                  (s/optional-key :person/gender) (s/enum "M" "Ms")})
 

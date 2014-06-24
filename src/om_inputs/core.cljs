@@ -8,7 +8,8 @@
             [schema.core :as s]
             [schema.coerce :as coerce]
             [clojure.string :as str]
-            [clojure.set :as st]))
+            [clojure.set :as st]
+            [om-inputs.date-utils :as d]))
 
 (enable-console-print!)
 
@@ -96,7 +97,9 @@
   (condp = (type t)
     schema.core.Predicate (:p? t)
     schema.core.EnumSchema "enum"
+    js/Function t
     "other"))
+
 
  (defn only-integer
    "Only authorize integer or empty string."
@@ -108,9 +111,16 @@
                   o
                   r))))
 
+ (def FULL-DATE "yyyy-MM-dd")
+
+ (defn parse-date [n o]
+   (d/parse FULL-DATE n ))
+
+
 
 (def coertion-fns
-  {integer? only-integer})
+  {integer? only-integer
+   js/Date parse-date })
 
 (s/defn build-coercer
   "Build the corecion map field->coercion-fn"
@@ -138,6 +148,13 @@
                        (dom/option #js {:value ""} "")
                        (map (fn [code]
                               (dom/option #js {:value code} (get data code (if (keyword? code) (name code) code)))) (:vs t))))
+
+
+(defmethod magic-input js/Date
+ [k t attrs data]
+  (let [date-in (d/fmt FULL-DATE (:value attrs))]
+   (dom/input (clj->js (merge attrs {:type "date"
+                               :value date-in})))))
 
 
 #_(defmethod magic-input integer?
