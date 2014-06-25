@@ -29,6 +29,10 @@
                  :person/married s/Bool})
 
 
+#_(def sch-person {:person/name s/Str
+                 (s/optional-key :person/first-name) s/Str
+                 (s/optional-key :person/cheveux) (s/enum "Blond" "Brun" "Chatain" "Roux")})
+
 (def person-input-view (make-input-comp :create-person sch-person #(js/alert %3) ))
 
 
@@ -44,8 +48,8 @@
 
 
 (om/root
- ;app-view
- person-input-view
+ app-view
+ ;person-input-view
  app-state
  {:target (. js/document (getElementById "person"))
   :shared {:i18n {"en" {:language {:action "Change language"
@@ -72,5 +76,3 @@
                                        :person/gender {:label "Genre"
                                                        :data {"M" "Monsieur"
                                                               "Ms" "Madame"}}}}}}})
-
-
