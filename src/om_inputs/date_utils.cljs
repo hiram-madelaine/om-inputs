@@ -8,6 +8,8 @@
 ;          Handle Date Format Parse               |
 ;_________________________________________________|
 
+(def default-fmt "dd/MM/yyyy")
+
 
 (def format-map
   (let [f DateTimeFormat.Format]
@@ -27,19 +29,23 @@
 
 
 (defn fmt
-  "Format a date using either the built-in goog.i18n.DateTimeFormat.Format enum or a formatting string like \"dd MMMM yyyy\""
+  "Format a date using either the built-in goog.i18n.DateTimeFormat.Format enum
+   or a formatting string like \"dd MMMM yyyy\""
   [date-format date]
   (.format (DateTimeFormat. (or (format-map date-format) date-format))
     (js/Date. date)))
 
+
 (defn parse
+  "Parse a Date according to the format specified
+   Default format is dd/MM/yyyy"
   ([f s]
    (let [p (DateTimeParse. f)
          d (js/Date.)]
      (.strictParse p s d)
      d))
   ([s]
-   (parse "dd/MM/yyyy" s)))
+   (parse default-fmt s)))
 
 (defprotocol SetDate
   (setInputValue [this v]))

@@ -24,9 +24,9 @@
 (def sch-person {:person/first-name s/Str
                  :person/name s/Str
                  (s/optional-key :person/birthdate) s/Inst
-                 (s/optional-key :person/size) s/Int
-                 (s/optional-key :person/gender) (s/enum "M" "Ms")})
-
+                 (s/optional-key :person/size) s/Num
+                 (s/optional-key :person/gender) (s/enum "M" "Ms")
+                 :person/married s/Bool})
 
 
 (def person-input-view (make-input-comp :create-person sch-person #(js/alert %3) ))
@@ -44,7 +44,8 @@
 
 
 (om/root
- app-view
+ ;app-view
+ person-input-view
  app-state
  {:target (. js/document (getElementById "person"))
   :shared {:i18n {"en" {:language {:action "Change language"
@@ -55,7 +56,7 @@
                                         :person/name {:label "Name"}
                                         :person/birthdate {:label "Birthday"}
                                         :person/first-name {:label "Firstname"}
-                                        :person/size {:label "Size"}
+                                        :person/size {:label "Size (cm)"}
                                         :person/gender {:label "Gender"
                                                         :data {"M" "Mister"
                                                                "Ms" "Miss"}}}}
@@ -67,7 +68,7 @@
                                        :person/name {:label "Nom"}
                                        :person/first-name {:label "Prénom"}
                                        :person/birthdate {:label "Date de naissance"}
-                                       :person/size {:label "Taille"}
+                                       :person/size {:label "Taille (cm)"}
                                        :person/gender {:label "Genre"
                                                        :data {"M" "Monsieur"
                                                               "Ms" "Madame"}}}}}}})

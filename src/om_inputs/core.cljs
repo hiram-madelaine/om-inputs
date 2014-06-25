@@ -92,17 +92,12 @@
   (merge  {s/Str empty-string-coercer} coerce/+string-coercions+))
 
 
-(defn sch-type [t]
-  "indicate the type a key must conform to."
-  (condp = (type t)
-    schema.core.Predicate (:p? t)
-    schema.core.EnumSchema "enum"
-    js/Function t
-    "other"))
-
 
  (defn only-integer
-   "Only authorize integer or empty string."
+   "Only authorize integer or empty string.
+    n is the new value
+    o is the old value
+    When the new value is valid returns it, else returns the previous one."
   [n o]
   (if (str/blank? n)
    ""
@@ -111,6 +106,19 @@
                   o
                   r))))
 
+ (defn only-number
+   "Only authorize integer or empty string.
+    n is the new value
+    o is the old value
+    When the new value is valid returns it, else returns the previous one."
+  [n o]
+  (if (str/blank? n)
+    ""
+    (if (js/isNaN n)
+      o
+      n)))
+
+
  (def FULL-DATE "yyyy-MM-dd")
 
  (defn parse-date [n o]
@@ -118,12 +126,24 @@
 
 
 
+(defn sch-type [t]
+  "This function is the link between Schema and the type of input.
+   s/Str, s/Int are inclosed in Predicate
+   s/Inst is represented "
+  (condp = (type t)
+    schema.core.Predicate (:p? t)
+    schema.core.EnumSchema "enum"
+    js/Function t
+    "other"))
+
 (def coertion-fns
   {integer? only-integer
-   js/Date parse-date })
+   js/Date parse-date
+   js/Number only-number})
+
 
 (s/defn build-coercer
-  "Build the corecion map field->coercion-fn"
+  "Build the corecion map field->coercion-fn from all entries of the Schema"
   [sch]
   (reduce (fn[acc [k v]]
             (if-let [cfn (get coertion-fns (sch-type v))]
@@ -137,33 +157,40 @@
 ;___________________________________________________________|
 
 
-(defmulti magic-input (fn [k t attrs data]
-                        (sch-type t)))
-
+(defmulti magic-input
+  (fn [{t :t}]
+    (sch-type t)))
 
 
 (defmethod magic-input "enum"
-  [k t attrs data]
+  [{:keys [t data attrs]}]
   (apply dom/select (clj->js attrs)
-                       (dom/option #js {:value ""} "")
-                       (map (fn [code]
-                              (dom/option #js {:value code} (get data code (if (keyword? code) (name code) code)))) (:vs t))))
+         (dom/option #js {:value ""} "")
+         (map (fn [code]
+                (dom/option #js {:value code} (get data code (if (keyword? code) (name code) code)))) (:vs t))))
 
 
 (defmethod magic-input js/Date
- [k t attrs data]
+ [{:keys [attrs]}]
   (let [date-in (d/fmt FULL-DATE (:value attrs))]
    (dom/input (clj->js (merge attrs {:type "date"
                                :value date-in})))))
 
+(defmethod magic-input js/Boolean
+  [{:keys [k attrs chan]}]
+  (let [value (:value attrs)]
+   (dom/input (clj->js (merge attrs {:checked (js/Boolean value)
+                                     :onChange #(put! chan [k (-> % .-target .-checked)])
+                                     :type "checkbox"})))))
+
 
 #_(defmethod magic-input integer?
- [k t attrs data]
+ [{:keys [k attrs data]}]
   (dom/input (clj->js (merge {:type "number"} attrs))))
 
 
 (defmethod magic-input :default
-  [k t attrs data]
+  [{:keys [k attrs]}]
   (dom/input (clj->js attrs)))
 
 
@@ -197,11 +224,11 @@
    The channel is expected in state under key :chan
    The i18n fn is expected in shared under key :i18n"
   ([owner n k t opts]
-   (let [
+   (let [e-checked #(-> % .-target .-checked)
          {:keys [chan inputs]} (om/get-state owner)
          lang (:lang (om/get-props owner))
          i18n (om/get-shared owner [:i18n lang] )
-         label (get-in i18n [n k :label] (name k))
+         label (get-in i18n [n k :label] (str/capitalize (name k)))
          value (get-in inputs [k :value])
          error (when-not (get-in inputs [k :valid] true) "has-error has-feedback")
          valid (when (get-in inputs [k :valid]) "has-success")
@@ -213,7 +240,7 @@
            (dom/label #js {:htmlFor (name k)
                            :className "control-label"} label)
               (when (:labeled opts) (dom/span #js {} value))
-              (magic-input k t attrs (get-in i18n [n k :data])))))
+              (magic-input {:k k :t t :attrs attrs :chan chan :data (get-in i18n [n k :data])}))))
   ([owner n k t]
    (build-input owner n k t {})))
 
