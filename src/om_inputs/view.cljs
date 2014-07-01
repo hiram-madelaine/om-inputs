@@ -7,7 +7,7 @@
    [schema.core :as s]))
 
 
-(def opts {:order []})
+(def opts {:order [:person/first-name :person/name :person/gender :person/birthdate :person/size :person/married]})
 
 
 
@@ -23,40 +23,42 @@
 
 (def sch-person {:person/first-name s/Str
                  :person/name s/Str
+                 (s/optional-key :person/gender) (s/enum "M" "Ms")
                  (s/optional-key :person/birthdate) s/Inst
                  (s/optional-key :person/size) s/Num
-                 (s/optional-key :person/gender) (s/enum "M" "Ms")
                  :person/married s/Bool})
 
 
-#_(def sch-person {:person/name s/Str
-                 (s/optional-key :person/first-name) s/Str
-                 (s/optional-key :person/cheveux) (s/enum "Blond" "Brun" "Chatain" "Roux")})
-
-(def person-input-view (make-input-comp :create-person sch-person #(js/alert %3) ))
-
-
-(defn app-view
-  [app owner]
-  (reify
-    om/IRender
-    (render [this]
-            (dom/div #js {:style #js {:width "350px"
-                                      :margin "5px"}}
-                     (om/build lang-view app)
-                     (om/build person-input-view app)))))
+(defn display-edn [_ _ edn]
+  (js/alert edn))
 
 
 (om/root
- app-view
- ;person-input-view
+ lang-view
  app-state
- {:target (. js/document (getElementById "person"))
+ {:target (. js/document (getElementById "lang"))
   :shared {:i18n {"en" {:language {:action "Change language"
                                    :lang {:label "Language"
                                           :data {"en" "English"
-                                                 "fr" "French"}}}
-                        :create-person {:action "Create person"
+                                                 "fr" "French"}}}}
+                  "fr" {:language {:action "Choix de la langue"
+                                   :lang {:label "Langue"
+                                          :data {"en" "Anglais"
+                                                 "fr" "Français"}}}}}} })
+(om/root
+ (make-input-comp
+  :create-person
+  {:person/first-name (s/maybe s/Str)
+   :person/name s/Str
+   (s/optional-key :person/birthdate) s/Inst
+   (s/optional-key :person/size) s/Num
+   (s/optional-key :person/gender) (s/enum "M" "Ms")
+   :person/married s/Bool}
+   display-edn
+  opts)
+ app-state
+ {:target (. js/document (getElementById "person"))
+  :shared {:i18n {"en" {:create-person {:action "Create person"
                                         :person/name {:label "Name"}
                                         :person/birthdate {:label "Birthday"}
                                         :person/first-name {:label "Firstname"}
@@ -64,11 +66,7 @@
                                         :person/gender {:label "Gender"
                                                         :data {"M" "Mister"
                                                                "Ms" "Miss"}}}}
-                  "fr" {:language {:action "Choix de la langue"
-                                   :lang {:label "Langue"
-                                          :data {"en" "Anglais"
-                                                 "fr" "Français"}}}
-                        :create-person {:action "Créer personne"
+                  "fr" {:create-person {:action "Créer personne"
                                        :person/name {:label "Nom"}
                                        :person/first-name {:label "Prénom"}
                                        :person/birthdate {:label "Date de naissance"}
