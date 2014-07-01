@@ -9,7 +9,8 @@
             [schema.coerce :as coerce]
             [clojure.string :as str]
             [clojure.set :as st]
-            [om-inputs.date-utils :as d]))
+            [om-inputs.date-utils :as d]
+            [om-inputs.schema-utils :as su]))
 
 (enable-console-print!)
 
@@ -321,8 +322,8 @@
                          (dom/fieldset nil (dom/form #js {:className "form"
                                                           :role "form"}
                                                      (into-array (if order
-                                                                  (map (fn [o]
-                                                                         (build-input owner comp-name o (o schema))) order)
+                                                                  (map (fn [k]
+                                                                         (build-input owner comp-name k (su/get-sch schema k))) order)
                                                                   (map (fn [[k t]]
                                                                         (build-input owner comp-name (get k :k k) t)) schema)))
                                                      (dom/input #js {:type  "button"
