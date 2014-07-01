@@ -258,12 +258,10 @@
              [fk {:value ""
                   :required (required? k)}])))
 
-(s/defn ^:always-validate prepare-for-validation :- {s/Keyword s/Any}
+(s/defn ^:always-validate pre-validation :- {s/Keyword s/Any}
   "Create the map that will be validated by the Schema :
    Only keeps :
-  required keys
-
-  "
+  required keys"
   [v :- sch-local-state]
   (into {} (for [[k m] v
                  :let [in (:value m)
@@ -300,7 +298,7 @@
                         (loop []
                           (let [[k v] (<! chan)]
                             (condp = k
-                              :create (let [raw (prepare-for-validation v)
+                              :create (let [raw (pre-validation v)
                                             res (input-coercer raw)]
                                         (if-let  [errs (:error res)]
                                           (let [new-state (handle-errors v errs)]
