@@ -87,10 +87,12 @@
   [s]
   (if (str/blank? s) nil s))
 
+(def string-handlers
+  {s/Str empty-string-coercer
+   (s/maybe s/Str) empty-string-coercer})
 
 (def validation-coercer
-  (merge  {s/Str empty-string-coercer} coerce/+string-coercions+))
-
+  (merge coerce/+string-coercions+ string-handlers))
 
 
  (defn only-integer
@@ -132,6 +134,7 @@
    s/Inst is represented "
   (condp = (type t)
     schema.core.Predicate (:p? t)
+    schema.core.Maybe (sch-type (:schema t))
     schema.core.EnumSchema "enum"
     js/Function t
     "other"))
@@ -143,7 +146,7 @@
 
 
 (s/defn build-coercer
-  "Build the corecion map field->coercion-fn from all entries of the Schema"
+  "Build the coercion map field->coercion-fn from all entries of the Schema"
   [sch]
   (reduce (fn[acc [k v]]
             (if-let [cfn (get coertion-fns (sch-type v))]
@@ -254,20 +257,31 @@
              [fk {:value ""
                   :required (required? k)}])))
 
+(s/defn ^:always-validate prepare-for-validation :- {s/Keyword s/Any}
+  "Create the map that will be validated by the Schema :
+   Only keeps :
+  required keys
 
+  "
+  [v :- sch-local-state]
+  (into {} (for [[k m] v
+                 :let [in (:value m)
+                       req (:required m)]
+                 :when (or req (not (str/blank? in)))]
+             {k (:value m)} )))
 
 (s/defn make-input-comp
-  "Build an input form Om component based on the config"
+  "Build an input form Om component based on a prismatic/Schema"
   ([comp-name
-    conf
+    schema
     action]
-   (make-input-comp comp-name conf action {}))
+   (make-input-comp comp-name schema action {}))
   ([comp-name
-    conf
+    schema
     action
     opts]
    (let [order (:order opts)
-         input-coercer (coerce/coercer conf validation-coercer)]
+         input-coercer (coerce/coercer schema validation-coercer)]
      (fn [app owner]
        (reify
          om/IDisplayName
@@ -276,8 +290,8 @@
          om/IInitState
          (init-state [_]
                      {:chan (chan)
-                      :inputs (build-init conf)
-                      :coercers (build-coercer conf)})
+                      :inputs (build-init schema)
+                      :coercers (build-coercer schema)})
          om/IWillMount
          (will-mount [this]
                      (let [{:keys [coercers chan inputs] :as state} (om/get-state owner)]
@@ -285,11 +299,7 @@
                         (loop []
                           (let [[k v] (<! chan)]
                             (condp = k
-                              :create (let [raw (into {} (for [[k m] v
-                                                               :let [in (:value m)
-                                                                     req (:required m)]
-                                                               :when (or req (not (str/blank? in)))]
-                                                           {k (:value m)} ))
+                              :create (let [raw (prepare-for-validation v)
                                             res (input-coercer raw)]
                                         (if-let  [errs (:error res)]
                                           (let [new-state (handle-errors v errs)]
@@ -312,9 +322,9 @@
                                                           :role "form"}
                                                      (into-array (if order
                                                                   (map (fn [o]
-                                                                         (build-input owner comp-name o (o conf))) order)
+                                                                         (build-input owner comp-name o (o schema))) order)
                                                                   (map (fn [[k t]]
-                                                                        (build-input owner comp-name (get k :k k) t)) conf)))
+                                                                        (build-input owner comp-name (get k :k k) t)) schema)))
                                                      (dom/input #js {:type  "button"
                                                                      :className "btn btn-primary"
                                                                      :value (get-in i18n [lang comp-name :action] (str (name comp-name) " action"))
