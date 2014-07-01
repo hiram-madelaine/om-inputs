@@ -1,4 +1,5 @@
 (ns om-inputs.schema-utils
+  (:require-macros [schema.macros :as s])
   (:require  [schema.core :as s]
              [schema.coerce :as coerce]))
 
@@ -9,7 +10,7 @@
 ; Nevertheless we need to get the value of a key regardless if it as Optional
 ;
 
-(defn norm-sch
+(s/defn norm-sch :- {s/Keyword s/Any}
   "Transform a schema with Optional Keys with only Keywords"
   [sch]
  (reduce (fn [acc [k v]]
