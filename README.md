@@ -1,12 +1,24 @@
 # The goal of this library is to rapidly prototype UI with Om/React
 
-The library generates responsive components based on data description.
+The library generates components based on data description.
 
 The library uses [Prismatic/Schema](https://github.com/Prismatic/schema) to describe the data.
 
 Using Schema allows the :
 * Validation of the data ;
 * Coercion of String to proper types.
+
+
+## See it in action
+
+The project contains the example that is used in the documentation
+
+Just clone the repo and run :
+
+`lein cljsbuild auto`
+
+`open index.html`
+
 
 ## How does it work
 
@@ -32,6 +44,29 @@ The name is used :
 #### Description of the fields
 
 The fields of a component are described with Schema :
+
+##### Supported Schema types
+
+* s/Str
+* s/Int
+* s/Inst
+* s/enum
+* s/Bool
+
+A value can be nil using s/maybe :
+
+```
+{:person/first-name (s/maybe s/Str)}
+
+```
+
+
+A key can be optional using s/s/optional-key :
+```
+ {(s/optional-key :person/size) s/Num}
+```
+
+##### Example
 
 ```
 (def sch-person {:person/first-name s/Str
@@ -64,18 +99,13 @@ In this example we build the component :create-person with the Schema seen previ
 
 ### Translation of the Schema into UI.
 
-#### Supported Schema types
-
-* s/Str
-* s/Int
-* s/Inst
-* s/enum
 
 
 #### The form inputs
 
 Each entry of a schema generate a field in the form.
-The example schema will produce a form with these input fields :
+
+Hence, the example schema will produce a form with these input fields :
 
 * A mandatory input of type text for :person/first-name ;
 * A mandatory input of type text for :person/name ;
@@ -95,6 +125,43 @@ When clicking the action button, the form is validated according to the Schema :
 
 
 #### Options
+
+Options are a mean to override the default behavior of the library.
+
+All options are given in a map.
+
+
+##### Order of fields
+
+The schema is a map that can't be ordered so the fields are displayed in a random order.
+
+
+You can define the total ordering by giving a vector :
+
+```
+(def opts {:order [:person/first-name :person/name :person/gender :person/birthdate :person/size :person/married]})
+
+```
+
+
+##### Change the rendering (work in progress)
+
+
+For example, concerning the enum schema, it should be possible to choose between a
+select or a group of radio buttons.
+```
+(def opts {:person/gender {:type "radio-group"}})
+
+```
+
+##### Initial value (not implemented yet)
+
+It should be possible to have initial values for each field.
+
+```
+(def opts {:init {:person/married true}})
+
+```
 
 
 #### i18n
