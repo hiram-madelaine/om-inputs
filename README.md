@@ -144,10 +144,10 @@ You can define the total ordering by giving a vector :
 ```
 
 
-##### Change the rendering (work in progress)
+##### Change the rendering (implementation may change)
 
 
-For example, concerning the enum schema, it should be possible to choose between a
+For example, concerning the enum schema, it is possible to choose between a
 select or a group of radio buttons.
 ```
 (def opts {:person/gender {:type "radio-group"}})
@@ -162,6 +162,8 @@ It should be possible to have initial values for each field.
 (def opts {:init {:person/married true}})
 
 ```
+
+The initial data could be retrieved from the cursor app-state.
 
 
 #### i18n

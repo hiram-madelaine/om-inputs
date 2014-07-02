@@ -162,16 +162,28 @@
 
 
 (defmulti magic-input
-  (fn [{t :t}]
-    (sch-type t)))
+  (fn [{t :t k :k opts :opts}]
+    (get-in opts [k :type] (sch-type t))))
 
 
 (defmethod magic-input "enum"
-  [{:keys [t data attrs]}]
+  [{:keys [k t data attrs chan]}]
   (apply dom/select (clj->js attrs)
          (dom/option #js {:value ""} "")
          (map (fn [code]
                 (dom/option #js {:value code} (get data code (if (keyword? code) (name code) code)))) (:vs t))))
+
+
+(defmethod magic-input "radio-group"
+  [{:keys [k t data attrs chan]}]
+  (apply dom/div #js {:className "input-group"}
+         (map (fn [code]
+                (dom/div #js {:className "radio"}
+                         (dom/input #js {:type "radio"
+                                         :name (name k)
+                                         :value code
+                                         :onClick #(put! chan [k code])}
+                                    (get data code (if (keyword? code) (name code) code))))) (:vs t))))
 
 
 (defmethod magic-input js/Date
@@ -244,7 +256,7 @@
            (dom/label #js {:htmlFor (name k)
                            :className "control-label"} label)
               (when (:labeled opts) (dom/span #js {} value))
-              (magic-input {:k k :t t :attrs attrs :chan chan :data (get-in i18n [n k :data])}))))
+              (magic-input {:k k :t t :attrs attrs :chan chan :opts opts :data (get-in i18n [n k :data])}))))
   ([owner n k t]
    (build-input owner n k t {})))
 
@@ -321,9 +333,9 @@
                                                           :role "form"}
                                                      (into-array (if order
                                                                   (map (fn [k]
-                                                                         (build-input owner comp-name k (su/get-sch schema k))) order)
+                                                                         (build-input owner comp-name k (su/get-sch schema k) opts)) order)
                                                                   (map (fn [[k t]]
-                                                                        (build-input owner comp-name (get k :k k) t)) schema)))
+                                                                         (build-input owner comp-name (get k :k k) t opts)) schema)))
                                                      (dom/input #js {:type  "button"
                                                                      :className "btn btn-primary"
                                                                      :value (get-in i18n [lang comp-name :action] (str (name comp-name) " action"))

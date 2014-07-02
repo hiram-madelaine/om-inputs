@@ -7,21 +7,19 @@
    [schema.core :as s]))
 
 
-(def opts {:order [:person/first-name :person/name :person/gender :person/birthdate :person/size :person/married]})
 
 
 
 (def lang-sch {:lang (s/enum "en" "fr")})
 
 
-(def lang-view (make-input-comp :language lang-sch  (fn [app owner v] (om/transact! app (fn [app] (merge app v)) ))))
 
 
 (def app-state (atom {:lang "fr"}))
 
 
 
-(def sch-person {:person/first-name s/Str
+(def sch-person {:person/first-name (s/maybe s/Str)
                  :person/name s/Str
                  (s/optional-key :person/gender) (s/enum "M" "Ms")
                  (s/optional-key :person/birthdate) s/Inst
@@ -29,12 +27,18 @@
                  :person/married s/Bool})
 
 
+(def opts {:order [:person/first-name :person/name :person/gender :person/birthdate :person/size :person/married]})
+
 (defn display-edn [_ _ edn]
   (js/alert edn))
 
 
 (om/root
- lang-view
+(make-input-comp
+ :language
+ lang-sch
+ (fn [app owner v] (om/transact! app (fn [app] (merge app v))))
+ {:lang {:type "radio-group"}})
  app-state
  {:target (. js/document (getElementById "lang"))
   :shared {:i18n {"en" {:language {:action "Change language"
