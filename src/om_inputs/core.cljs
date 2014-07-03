@@ -218,21 +218,34 @@
 ;___________________________________________________________|
 
 
+(defn validate
+  "Generic sequence of validation"
+  [validation-fn post m]
+  (post (validation-fn m)))
+
+
+(defn verily
+  "Inversion of parameters for the verily validation function for partial application of the rules."
+  [validators m]
+  (v/validate m validators))
+
+
 (def sch-verily-errs
   [{:keys [s/Keyword]
     :msg s/Keyword}])
-(s/validate sch-verily-errs '({:keys (:person/size), :msg :person-size-min-length}
+#_(s/validate sch-verily-errs '({:keys (:person/size), :msg :person-size-min-length}
                                      {:keys [:person/name :person/size] :msg :k }))
 
-(s/defn transform-errors :- {s/Keyword [s/Keyword]}
+(s/defn transform-verily-errors :- {s/Keyword [s/Keyword]}
   [errs :- sch-verily-errs]
-  (apply merge-with concat {}
+  (when (seq errs)
+    (apply merge-with concat {}
          (for [{:keys [keys msg]} errs
                k keys]
-           {k [msg]})))
+           {k [msg]}))))
 
 
-(transform-errors '({:keys (:person/size), :msg :person-size-min-length}
+#_(transform-errors '({:keys (:person/size), :msg :person-size-min-length}
                                      {:keys [:person/name :person/size] :msg :k }))
 
 (s/defn ^:always-validate  handle-errors :- sch-local-state
@@ -309,8 +322,9 @@
     action
     opts]
    (let [order (:order opts)
-         input-coercer (coerce/coercer schema validation-coercer)
-         validators (:validations opts)]
+         schema-coercer (coerce/coercer schema validation-coercer)
+         validators (:validations opts)
+         validation (partial validate (partial verily validators) transform-verily-errors)]
      (fn [app owner]
        (reify
          om/IDisplayName
@@ -329,17 +343,12 @@
                           (let [[k v] (<! chan)]
                             (condp = k
                               :create (let [raw (pre-validation v)
-                                            res (input-coercer raw)]
-                                        (if-let  [errs (:error res)]
-                                          (let [error-state (handle-errors v errs)]
-                                            (om/set-state! owner [:inputs] error-state))
-                                          (do
-                                            (if-let [b-errs (seq (v/validate res validators))]
-                                              (let [error-state (handle-errors v (transform-errors b-errs))]
-                                                (om/set-state! owner [:inputs] error-state))
+                                            coerced (schema-coercer raw)]
+                                        (if-let [errs (or (:error coerced) (validation coerced))]
+                                              (om/set-state! owner [:inputs] (handle-errors v errs))
                                               (do
                                                 (om/set-state! owner [:inputs] inputs)
-                                                (action app owner res))))))
+                                                (action app owner coerced))))
                               (let [coerce (get coercers k (fn [n _] n))
                                     old-val (om/get-state owner [:inputs k :value])]
                                (om/set-state! owner [:inputs k :value] (coerce v old-val)))))
