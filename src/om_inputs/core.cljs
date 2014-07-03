@@ -10,7 +10,8 @@
             [clojure.string :as str]
             [clojure.set :as st]
             [om-inputs.date-utils :as d]
-            [om-inputs.schema-utils :as su]))
+            [om-inputs.schema-utils :as su]
+            [jkkramer.verily :as v]))
 
 (enable-console-print!)
 
@@ -217,8 +218,24 @@
 ;___________________________________________________________|
 
 
+(def sch-verily-errs
+  [{:keys [s/Keyword]
+    :msg s/Keyword}])
+(s/validate sch-verily-errs '({:keys (:person/size), :msg :person-size-min-length}
+                                     {:keys [:person/name :person/size] :msg :k }))
 
-(s/defn ^:always-validate handle-errors :- sch-local-state
+(s/defn transform-errors :- {s/Keyword [s/Keyword]}
+  [errs :- sch-verily-errs]
+  (apply merge-with concat {}
+         (for [{:keys [keys msg]} errs
+               k keys]
+           {k [msg]})))
+
+
+(transform-errors '({:keys (:person/size), :msg :person-size-min-length}
+                                     {:keys [:person/name :person/size] :msg :k }))
+
+(s/defn ^:always-validate  handle-errors :- sch-local-state
   "Set valid to false for each key in errors, true if absent"
   [state :- sch-local-state
    errs :- {s/Keyword s/Any}]
@@ -273,7 +290,7 @@
 (s/defn ^:always-validate pre-validation :- {s/Keyword s/Any}
   "Create the map that will be validated by the Schema :
    Only keeps :
-  required keys"
+  required keys and optional keys with non blank values"
   [v :- sch-local-state]
   (into {} (for [[k m] v
                  :let [in (:value m)
@@ -292,7 +309,8 @@
     action
     opts]
    (let [order (:order opts)
-         input-coercer (coerce/coercer schema validation-coercer)]
+         input-coercer (coerce/coercer schema validation-coercer)
+         validators (:validations opts)]
      (fn [app owner]
        (reify
          om/IDisplayName
@@ -313,11 +331,15 @@
                               :create (let [raw (pre-validation v)
                                             res (input-coercer raw)]
                                         (if-let  [errs (:error res)]
-                                          (let [new-state (handle-errors v errs)]
-                                            (om/set-state! owner [:inputs] new-state))
+                                          (let [error-state (handle-errors v errs)]
+                                            (om/set-state! owner [:inputs] error-state))
                                           (do
-                                            (om/set-state! owner [:inputs] inputs)
-                                            (action app owner res))))
+                                            (if-let [b-errs (seq (v/validate res validators))]
+                                              (let [error-state (handle-errors v (transform-errors b-errs))]
+                                                (om/set-state! owner [:inputs] error-state))
+                                              (do
+                                                (om/set-state! owner [:inputs] inputs)
+                                                (action app owner res))))))
                               (let [coerce (get coercers k (fn [n _] n))
                                     old-val (om/get-state owner [:inputs k :value])]
                                (om/set-state! owner [:inputs k :value] (coerce v old-val)))))

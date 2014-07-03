@@ -1,4 +1,4 @@
-(defproject om-inputs "0.1.4-SNAPSHOT"
+(defproject om-inputs "0.1.5-SNAPSHOT"
   :description "Try to handle form of inputs in an Om app"
   :url "http://example.com/FIXME"
 
@@ -8,17 +8,38 @@
                  [om "0.6.4"]
                  [prismatic/dommy "0.1.2"]
                  [prismatic/schema "0.2.3"]
-                 [com.facebook/react "0.9.0"]]
+                 [com.facebook/react "0.9.0"]
+                 [jkkramer/verily "0.6.0"]]
 
-  :plugins [[lein-cljsbuild "1.0.2"]]
+  :plugins [[lein-cljsbuild "1.0.2"]
+            [codox "0.8.10"]]
 
+  :codox {:language :clojurescript
+          :include [om-inputs.date-utils om-inputs.core]}
   :source-paths ["src"]
 
   :cljsbuild {
-    :builds [{:id "om-inputs"
-              :source-paths ["src"]
-              :compiler {
-                :output-to "om_inputs.js"
-                :output-dir "out"
-                :optimizations :none
-                :source-map true}}]})
+              :builds [{:id "om-inputs"
+                        :source-paths ["src"]
+                        :compiler {
+                                   :output-to "om_inputs.js"
+                                   :output-dir "out"
+                                   :optimizations :none
+                                   :source-map true}}
+                       {:id "simple"
+                        :source-paths ["src"]
+                        :compiler {
+                                   :output-to "main.js"
+                                   :optimizations :simple
+                                   :pretty-print true
+                                   :preamble ["react/react.min.js"]
+                                   :externs ["react/externs/react.js"]}}
+                       {:id "release"
+                        :source-paths ["src"]
+                        :compiler {
+                                   :output-to "main.js"
+                                   :optimizations :advanced
+                                   :pretty-print true
+                                   :pseudo-names true
+                                   :preamble ["react/react.min.js"]
+                                   :externs ["react/externs/react.js"]}}]})

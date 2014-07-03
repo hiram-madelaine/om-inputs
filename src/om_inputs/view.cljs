@@ -8,26 +8,16 @@
 
 
 
-
-
 (def lang-sch {:lang (s/enum "en" "fr")})
-
-
 
 
 (def app-state (atom {:lang "fr"}))
 
 
 
-(def sch-person {:person/first-name (s/maybe s/Str)
-                 :person/name s/Str
-                 (s/optional-key :person/gender) (s/enum "M" "Ms")
-                 (s/optional-key :person/birthdate) s/Inst
-                 (s/optional-key :person/size) s/Num
-                 :person/married s/Bool})
-
-
-(def opts {:order [:person/first-name :person/name :person/gender :person/birthdate :person/size :person/married]})
+(def opts {:order [:person/first-name :person/name :person/email :person/gender :person/birthdate :person/size :person/married]
+           :validations [[:min-val 10 :person/size :person-size-min-length]
+                         [:email :person/email :bad-email]]})
 
 (defn display-edn [_ _ edn]
   (js/alert edn))
@@ -54,6 +44,7 @@
   :create-person
   {:person/first-name (s/maybe s/Str)
    :person/name s/Str
+   :person/email (s/maybe s/Str)
    (s/optional-key :person/birthdate) s/Inst
    (s/optional-key :person/size) s/Num
    (s/optional-key :person/gender) (s/enum "M" "Ms")
