@@ -19,7 +19,7 @@
   :source-paths ["src"]
 
   :cljsbuild {
-              :builds [{:id "om-inputs"
+              :builds [{:id "dev"
                         :source-paths ["src"]
                         :compiler {
                                    :output-to "om_inputs.js"
