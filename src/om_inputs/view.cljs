@@ -11,7 +11,7 @@
 (def lang-sch {:lang (s/enum "en" "fr")})
 
 
-(def app-state (atom {:lang "fr"}))
+(def app-state (atom {:lang "en"}))
 
 
 
@@ -53,7 +53,9 @@
   opts)
  app-state
  {:target (. js/document (getElementById "person"))
-  :shared {:i18n {"en" {:create-person {:action "Create person"
+  :shared {:i18n {"en" {:errors {:bad-email "The format of the email is invalid"
+                                 :mandatory "This data is required"}
+                        :create-person {:action "Create person"
                                         :person/name {:label "Name"}
                                         :person/birthdate {:label "Birthday"}
                                         :person/first-name {:label "Firstname"}
@@ -61,7 +63,9 @@
                                         :person/gender {:label "Gender"
                                                         :data {"M" "Mister"
                                                                "Ms" "Miss"}}}}
-                  "fr" {:create-person {:action "Créer personne"
+                  "fr" {:errors {:mandatory "Cette donnée est obligatoire"
+                                 :bad-email "Cette adresse email est invalide"}
+                        :create-person {:action "Créer personne"
                                        :person/name {:label "Nom"}
                                        :person/first-name {:label "Prénom"}
                                        :person/birthdate {:label "Date de naissance"}

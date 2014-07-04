@@ -48,9 +48,12 @@
                 (s/optional-key :opts) sch-conf-opts}])
 
 
-(def sch-local-state {s/Keyword {:value s/Any
-                                 :required s/Bool
-                                 (s/optional-key :valid) s/Bool}})
+(def sch-local-state
+  "Local bsuiness state's data structure "
+  {s/Keyword {:value s/Any
+              :required s/Bool
+              (s/optional-key :valid) s/Bool
+              (s/optional-key :error) [s/Keyword]}})
 
 
 ;_________________________________________________
@@ -218,8 +221,13 @@
 ;___________________________________________________________|
 
 
+(def sch-errors
+  "Describes the om-input's error data structure."
+  {s/Keyword [s/Keyword]})
+
 (defn validate
-  "Generic sequence of validation"
+  "Generic sequence of validation.
+  The first args can be partially applied to generate a custom validator."
   [validation-fn post m]
   (post (validation-fn m)))
 
@@ -231,12 +239,16 @@
 
 
 (def sch-verily-errs
+  "Describe the Verily errors data structure."
   [{:keys [s/Keyword]
     :msg s/Keyword}])
-#_(s/validate sch-verily-errs '({:keys (:person/size), :msg :person-size-min-length}
-                                     {:keys [:person/name :person/size] :msg :k }))
 
-(s/defn transform-verily-errors :- {s/Keyword [s/Keyword]}
+(def sch-schema-errs
+  "Describe the Scheam errors data structure"
+  {s/Keyword s/Any})
+
+(s/defn transform-verily-errors :- sch-errors
+  "Transform the Verily's error data structure into om-inputs's error data structure."
   [errs :- sch-verily-errs]
   (when (seq errs)
     (apply merge-with concat {}
@@ -244,24 +256,46 @@
                k keys]
            {k [msg]}))))
 
+(s/defn transform-schema-errors :- sch-errors
+  [errs :- sch-schema-errs]
+  (when-let [errors (:error errs)]
+   (apply merge-with concat
+         (for [[k _] errors]
+           {k [:mandatory]}))))
 
-#_(transform-errors '({:keys (:person/size), :msg :person-size-min-length}
-                                     {:keys [:person/name :person/size] :msg :k }))
 
 (s/defn ^:always-validate  handle-errors :- sch-local-state
   "Set valid to false for each key in errors, true if absent"
   [state :- sch-local-state
-   errs :- {s/Keyword s/Any}]
+   errs :- sch-errors]
   (let [err-ks (set (keys errs))
         all-ks (set (keys state))
         valid-ks (st/difference all-ks err-ks)
-        state (reduce (fn [s e] (assoc-in s [e :valid] false)) state err-ks)]
-    (reduce (fn [s e] (assoc-in s [e :valid] true)) state valid-ks)))
+        state (reduce (fn [s e]
+                        (-> s
+                            (assoc-in [e :valid] false)
+                            (assoc-in [e :error] (e errs)))) state err-ks)]
+    (reduce (fn [s e]
+              (-> s
+               (assoc-in [e :valid] true)
+               (update-in [e] dissoc :error))) state valid-ks)))
 
 ;___________________________________________________________
 ;                                                           |
 ;          Component builders                               |
 ;___________________________________________________________|
+
+
+(defn message [app owner m]
+  "Display an error message"
+  (reify om/IRender
+    (render [this]
+      (dom/div #js {:className "alert alert-danger"
+                    :role "alert"}
+               (dom/button #js {:type "button"
+                                :className "close"
+                                :data-dismiss "alert"} "x")
+               (get-in m [:mess])))))
 
 
 (defn build-input
@@ -273,16 +307,20 @@
    (let [e-checked #(-> % .-target .-checked)
          {:keys [chan inputs]} (om/get-state owner)
          lang (:lang (om/get-props owner))
-         i18n (om/get-shared owner [:i18n lang] )
+         i18n (om/get-shared owner [:i18n lang])
          label (get-in i18n [n k :label] (str/capitalize (name k)))
          value (get-in inputs [k :value])
          error (when-not (get-in inputs [k :valid] true) "has-error has-feedback")
+         [err-k] (when error (get-in inputs [k :error]))
          valid (when (get-in inputs [k :valid]) "has-success")
          attrs {:id (name k)
                 :className "form-control"
                 :value value
                 :onChange #(put! chan [k (e-value %)]) }]
      (dom/div #js {:className (str/join " " ["form-group" error valid])}
+           (let [mess (get-in i18n [:errors err-k])]
+            (when (and error mess)
+              (om/build message (om/get-props owner) {:opts {:mess mess}})))
            (dom/label #js {:htmlFor (name k)
                            :className "control-label"} label)
               (when (:labeled opts) (dom/span #js {} value))
@@ -293,7 +331,7 @@
 
 
 (s/defn ^:always-validate build-init :- sch-local-state
-  "Build the inial local state backing the inputs in the form."
+  "Build the initial business local state backing the inputs in the form."
   [sch]
   (into {} (for [[k t] sch
                  :let [fk (get k :k k)]]
@@ -303,7 +341,8 @@
 (s/defn ^:always-validate pre-validation :- {s/Keyword s/Any}
   "Create the map that will be validated by the Schema :
    Only keeps :
-  required keys and optional keys with non blank values"
+   - required keys
+   - optional keys with non blank values"
   [v :- sch-local-state]
   (into {} (for [[k m] v
                  :let [in (:value m)
@@ -324,7 +363,8 @@
    (let [order (:order opts)
          schema-coercer (coerce/coercer schema validation-coercer)
          validators (:validations opts)
-         validation (partial validate (partial verily validators) transform-verily-errors)]
+         validation (partial validate (partial verily validators) transform-verily-errors)
+         checker (partial validate schema-coercer transform-schema-errors)]
      (fn [app owner]
        (reify
          om/IDisplayName
@@ -343,8 +383,9 @@
                           (let [[k v] (<! chan)]
                             (condp = k
                               :create (let [raw (pre-validation v)
-                                            coerced (schema-coercer raw)]
-                                        (if-let [errs (or (:error coerced) (validation coerced))]
+                                            coerced (schema-coercer raw)
+                                            _ (transform-schema-errors coerced)]
+                                        (if-let [errs (or (checker raw) (validation coerced))]
                                               (om/set-state! owner [:inputs] (handle-errors v errs))
                                               (do
                                                 (om/set-state! owner [:inputs] inputs)

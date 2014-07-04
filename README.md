@@ -154,6 +154,30 @@ select or a group of radio buttons.
 
 ```
 
+
+##### More Complex Validation rules
+
+It is possible to add more complex validation rules than the one provided by Schema.
+I chose [Verily](https://github.com/jkk/verily) for thoses reasons :
+
+* the rules can be described as data structure
+* the rules are expressed on the whole map not by key.
+* It works for Clojure and ClojureScript.
+
+
+My goal is to be able to plus any other validation framework.
+
+
+######  Add validations rules
+
+
+```
+(def opts {:validations [[:min-val 100 :person/size :person-size-min-length]
+                         [:email :person/email :bad-email]]})
+```
+
+
+
 ##### Initial value (not implemented yet)
 
 It should be possible to have initial values for each field.
@@ -168,7 +192,7 @@ The initial data could be retrieved from the cursor app-state.
 
 #### i18n
 
-It is possible to provide the labels in multiple languages.
+It is possible to provide the labels and error messages in multiple languages.
 Just put a map in the shared data :
 
 ```

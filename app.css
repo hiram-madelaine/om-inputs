@@ -1,4 +1,7 @@
 .form {
   width : 350px;
+  padding : 8px;
   margin : 10px;
+  border-radius : 6px;
+  background-color : lightgrey;
 }

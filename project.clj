@@ -1,4 +1,4 @@
-(defproject om-inputs "0.1.5-SNAPSHOT"
+(defproject om-inputs "0.1.6-SNAPSHOT"
   :description "Try to handle form of inputs in an Om app"
   :url "http://example.com/FIXME"
 
