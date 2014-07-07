@@ -158,14 +158,15 @@ select or a group of radio buttons.
 ##### More Complex Validation rules
 
 It is possible to add more complex validation rules than the one provided by Schema.
-I chose [Verily](https://github.com/jkk/verily) for thoses reasons :
+
+I chose [Verily](https://github.com/jkk/verily) for the following reasons :
 
 * the rules can be described as data structure
 * the rules are expressed on the whole map not by key.
 * It works for Clojure and ClojureScript.
 
 
-My goal is to be able to plus any other validation framework.
+My goal is to be able to plug any other validation framework.
 
 
 ######  Add validations rules
