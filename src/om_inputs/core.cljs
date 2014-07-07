@@ -288,13 +288,14 @@
 
 (defn message [app owner m]
   "Display an error message"
-  (reify om/IRender
-    (render [this]
+  (reify om/IRenderState
+    (render-state [this {:keys [chan ] :as state}]
       (dom/div #js {:className "alert alert-danger"
                     :role "alert"}
                (dom/button #js {:type "button"
                                 :className "close"
-                                :data-dismiss "alert"} "x")
+                                :data-dismiss "alert"
+                                :onClick #(put! chan [:kill-mess (:k m)])} "x")
                (get-in m [:mess])))))
 
 
@@ -320,7 +321,8 @@
      (dom/div #js {:className (str/join " " ["form-group" error valid])}
            (let [mess (get-in i18n [:errors err-k])]
             (when (and error mess)
-              (om/build message (om/get-props owner) {:opts {:mess mess}})))
+              (om/build message (om/get-props owner) {:opts {:mess mess :k k}
+                                                      :init-state {:chan chan}})))
            (dom/label #js {:htmlFor (name k)
                            :className "control-label"} label)
               (when (:labeled opts) (dom/span #js {} value))
@@ -382,9 +384,9 @@
                         (loop []
                           (let [[k v] (<! chan)]
                             (condp = k
+                              :kill-mess (om/update-state! owner [:inputs v] #(dissoc % :error) )
                               :create (let [raw (pre-validation v)
-                                            coerced (schema-coercer raw)
-                                            _ (transform-schema-errors coerced)]
+                                            coerced (schema-coercer raw)]
                                         (if-let [errs (or (checker raw) (validation coerced))]
                                               (om/set-state! owner [:inputs] (handle-errors v errs))
                                               (do
