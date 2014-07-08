@@ -21,39 +21,24 @@
 ;          Schemas                                |
 ;_________________________________________________|
 
-(def sch-inputs {:inputs s/Any})
-
-(def sch-chan {:chan ManyToManyChannel})
 
 
 (def sch-i18n {:i18n {:inputs s/Any}})
 
-(def sch-state (merge sch-inputs sch-chan {s/Any s/Any}))
-
-(def sch-select-data {:code s/Str
-                      :label s/Str})
-
-
-(def sch-conf-opts {(s/optional-key :labeled) s/Bool
-                    (s/optional-key :min) s/Int
-                    (s/optional-key :max) s/Int
-                    (s/optional-key :step) s/Int
-                    (s/optional-key :type) (s/enum "text" "range" "number" "color" "select")
-                    (s/optional-key :data) [sch-select-data]})
-
-
-(def sch-conf [{:field s/Keyword
-                :value s/Any
-                (s/optional-key :coercer) s/Any
-                (s/optional-key :opts) sch-conf-opts}])
-
-
-(def sch-local-state
-  "Local bsuiness state's data structure "
+(def sch-business-state
+  "Local business state's data structure "
   {s/Keyword {:value s/Any
               :required s/Bool
               (s/optional-key :valid) s/Bool
               (s/optional-key :error) [s/Keyword]}})
+
+
+(def sch-inputs {:inputs sch-business-state})
+
+(def sch-chan {:chan ManyToManyChannel})
+
+(def sch-state (merge sch-inputs sch-chan {s/Any s/Any}))
+
 
 
 ;_________________________________________________
@@ -66,6 +51,11 @@
   "Get value from an event"
   [e]
   (-> e .-target .-value))
+
+(defn e-checked
+  "Get the checked status of a checkbox."
+  [e]
+  (-> e .-target .-checked))
 
 ;_________________________________________________
 ;                                                 |
@@ -262,9 +252,9 @@
            {k [:mandatory]}))))
 
 
-(s/defn ^:always-validate  handle-errors :- sch-local-state
+(s/defn ^:always-validate  handle-errors :- sch-business-state
   "Set valid to false for each key in errors, true if absent"
-  [state :- sch-local-state
+  [state :- sch-business-state
    errs :- sch-errors]
   (let [err-ks (set (keys errs))
         all-ks (set (keys state))
@@ -284,17 +274,18 @@
 ;___________________________________________________________|
 
 
-(defn message [app owner m]
-  "Display an error message"
+(defn message
+  "Display a dismissable error message"
+  [app owner m]
   (reify om/IRenderState
     (render-state [this {:keys [chan ] :as state}]
-      (dom/div #js {:className "alert alert-danger"
-                    :role "alert"}
-               (dom/button #js {:type "button"
-                                :className "close"
-                                :data-dismiss "alert"
-                                :onClick #(put! chan [:kill-mess (:k m)])} "x")
-               (get-in m [:mess])))))
+                  (dom/div #js {:className "alert alert-danger"
+                                :role "alert"}
+                           (dom/button #js {:type "button"
+                                            :className "close"
+                                            :data-dismiss "alert"
+                                            :onClick #(put! chan [:kill-mess (:k m)])} "x")
+                           (:mess m)))))
 
 
 (defn build-input
@@ -303,8 +294,7 @@
    The channel is expected in state under key :chan
    The i18n fn is expected in shared under key :i18n"
   ([owner n k t opts]
-   (let [e-checked #(-> % .-target .-checked)
-         {:keys [chan inputs]} (om/get-state owner)
+   (let [{:keys [chan inputs]} (om/get-state owner)
          lang (:lang (om/get-props owner))
          i18n (om/get-shared owner [:i18n lang])
          label (get-in i18n [n k :label] (str/capitalize (name k)))
@@ -330,7 +320,7 @@
 
 
 
-(s/defn ^:always-validate build-init :- sch-local-state
+(s/defn ^:always-validate build-init :- sch-business-state
   "Build the initial business local state backing the inputs in the form."
   [sch]
   (into {} (for [[k t] sch
@@ -343,7 +333,7 @@
    Only keeps :
    - required keys
    - optional keys with non blank values"
-  [v :- sch-local-state]
+  [v :- sch-business-state]
   (into {} (for [[k m] v
                  :let [in (:value m)
                        req (:required m)]
