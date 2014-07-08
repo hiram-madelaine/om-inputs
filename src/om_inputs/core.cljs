@@ -92,12 +92,10 @@
   [s]
   (if (str/blank? s) nil s))
 
-(def string-handlers
-  {s/Str empty-string-coercer
-   (s/maybe s/Str) empty-string-coercer})
 
 (def validation-coercer
-  (merge coerce/+string-coercions+ string-handlers))
+  (merge coerce/+string-coercions+ {s/Str empty-string-coercer
+                                    (s/maybe s/Str) empty-string-coercer}))
 
 
  (defn only-integer
@@ -312,7 +310,7 @@
          label (get-in i18n [n k :label] (str/capitalize (name k)))
          value (get-in inputs [k :value])
          error (when-not (get-in inputs [k :valid] true) "has-error has-feedback")
-         [err-k] (when error (get-in inputs [k :error]))
+         [err-k & errs] (when error (get-in inputs [k :error]))
          valid (when (get-in inputs [k :valid]) "has-success")
          attrs {:id (name k)
                 :className "form-control"
