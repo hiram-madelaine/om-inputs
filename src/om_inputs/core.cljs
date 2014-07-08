@@ -236,7 +236,7 @@
   {s/Keyword s/Any})
 
 (s/defn transform-verily-errors :- sch-errors
-  "Transform the Verily's error data structure into om-inputs's error data structure."
+  "Transforms the Verily's error data structure into the common error data structure."
   [errs :- sch-verily-errs]
   (when (seq errs)
     (apply merge-with concat {}
@@ -245,6 +245,8 @@
            {k [msg]}))))
 
 (s/defn transform-schema-errors :- sch-errors
+  "Transforms the Schema's error data structure into the common error data structure.
+  For the moment Schema error are treated as missing field."
   [errs :- sch-schema-errs]
   (when-let [errors (:error errs)]
    (apply merge-with concat
@@ -320,7 +322,7 @@
 
 
 
-(s/defn ^:always-validate build-init :- sch-business-state
+(s/defn ^:always-validate build-init-state :- sch-business-state
   "Build the initial business local state backing the inputs in the form."
   [sch]
   (into {} (for [[k t] sch
@@ -363,7 +365,7 @@
          om/IInitState
          (init-state [_]
                      {:chan (chan)
-                      :inputs (build-init schema)
+                      :inputs (build-init-state schema)
                       :coercers (build-coercer schema)})
          om/IWillMount
          (will-mount [this]
