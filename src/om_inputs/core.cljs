@@ -102,10 +102,11 @@
                   r))))
 
  (defn only-number
-   "Only authorize integer or empty string.
+   "Validate a that an input of type s/Num contains a value that can be converted in a numeric.
+    If not the previous value is used.
+    An empty string is left as is.
     n is the new value
-    o is the old value
-    When the new value is valid returns it, else returns the previous one."
+    o is the old value"
   [n o]
   (if (str/blank? n)
     ""
@@ -128,6 +129,7 @@
   (condp = (type t)
     schema.core.Predicate (:p? t)
     schema.core.Maybe (sch-type (:schema t))
+    schema.core.NamedSchema (sch-type (:schema t))
     schema.core.EnumSchema "enum"
     js/Function t
     "other"))
@@ -210,7 +212,8 @@
 
 
 (def sch-errors
-  "Describes the om-input's error data structure."
+  "Describes the om-input's error data structure.
+   A field can have multiples errors."
   {s/Keyword [s/Keyword]})
 
 (defn validate
