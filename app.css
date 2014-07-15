@@ -5,3 +5,23 @@
   border-radius : 6px;
   background-color : lightgrey;
 }
+
+.description {
+  font-size : 0.75em;
+   color : grey;
+}
+
+
+.required::before {
+  content : "* ";
+  color : #a94442;
+}
+
+
+.optional::after {
+  content : " (Option)";
+  color : grey;
+  font-size : 0.75em;
+}
+
+

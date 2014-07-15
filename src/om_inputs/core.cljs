@@ -57,6 +57,11 @@
   [e]
   (-> e .-target .-checked))
 
+(defn styles
+  [& args]
+  (str/join " " args))
+
+
 ;_________________________________________________
 ;                                                 |
 ;       prismatic/Schema related Utils            |
@@ -165,7 +170,7 @@
   (apply dom/select (clj->js attrs)
          (dom/option #js {:value ""} "")
          (map (fn [code]
-                (dom/option #js {:value code} (get data code (if (keyword? code) (name code) code)))) (:vs t))))
+                (dom/option #js {:value code} (get-in data [code :label] (if (keyword? code) (name code) code)))) (:vs t))))
 
 
 (defmethod magic-input "radio-group"
@@ -177,7 +182,7 @@
                                          :name (name k)
                                          :value code
                                          :onClick #(put! chan [k code])}
-                                    (get data code (if (keyword? code) (name code) code))))) (:vs t))))
+                                    (get-in data [code :label] (if (keyword? code) (name code) code))))) (:vs t))))
 
 
 (defmethod magic-input js/Date
@@ -292,6 +297,13 @@
                                             :onClick #(put! chan [:kill-mess (:k m)])} "x")
                            (:mess m)))))
 
+(defn description
+  "Display a small description under the label"
+  [app owner m]
+  (reify om/IRenderState
+    (render-state [_ state]
+        (dom/div #js {:className "description"} (:desc m)))))
+
 
 (defn build-input
   "Handle the display of an input from state and push change on a channel.
@@ -307,17 +319,21 @@
          error (when-not (get-in inputs [k :valid] true) "has-error has-feedback")
          [err-k & errs] (when error (get-in inputs [k :error]))
          valid (when (get-in inputs [k :valid]) "has-success")
+         required (if (get-in inputs [k :required]) "required" "optional")
+         desc (get-in i18n [n k :desc])
          attrs {:id (name k)
                 :className "form-control"
                 :value value
                 :onChange #(put! chan [k (e-value %)]) }]
-     (dom/div #js {:className (str/join " " ["form-group" error valid])}
+     (dom/div #js {:className (styles "form-group" error valid)}
            (let [mess (get-in i18n [:errors err-k])]
             (when (and error mess)
               (om/build message (om/get-props owner) {:opts {:mess mess :k k}
                                                       :init-state {:chan chan}})))
-           (dom/label #js {:htmlFor (name k)
-                           :className "control-label"} label)
+              (dom/label #js {:htmlFor (name k)
+                              :className (styles "control-label" required)}
+                         label)
+              (when desc (om/build description (om/get-props owner) {:opts {:desc desc}}))
               (when (:labeled opts) (dom/span #js {} value))
               (magic-input {:k k :t t :attrs attrs :chan chan :opts opts :data (get-in i18n [n k :data])}))))
   ([owner n k t]
@@ -405,8 +421,10 @@
                                                                          (build-input owner comp-name (get k :k k) t opts)) schema)))
                                                      (dom/input #js {:type  "button"
                                                                      :className "btn btn-primary"
-                                                                     :value (get-in i18n [lang comp-name :action] (str (name comp-name) " action"))
-                                                                     :onClick #(put! chan [:create inputs])}))))))))))
+                                                                     :value (get-in i18n [lang comp-name :action :label] (str (name comp-name) " action"))
+                                                                     :onClick #(put! chan [:create inputs])})
+                                                     (om/build description app {:opts {:init-state state
+                                                                                         :desc (get-in i18n [lang comp-name :action :desc])}}))))))))))
 
 
 
