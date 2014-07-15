@@ -55,7 +55,8 @@
  {:target (. js/document (getElementById "person"))
   :shared {:i18n {"en" {:errors {:bad-email "The format of the email is invalid"
                                  :mandatory "This information is required"}
-                        :create-person {:action {:label "Create person"
+                        :create-person {:title "User account"
+                                        :action {:label "Create person"
                                                  :desc "We won't debit your card now."}
                                         :person/name {:label "Name"}
                                         :person/email {:desc "You will never receive spam."}
@@ -67,7 +68,8 @@
                                                                "Ms" {:label "Miss"}}}}}
                   "fr" {:errors {:mandatory "Cette donnée est obligatoire"
                                  :bad-email "Cette adresse email est invalide"}
-                        :create-person {:action {:label "Créer personne"
+                        :create-person {:title "Creation du compte"
+                                        :action {:label "Créer personne"
                                                  :desc "Nous n'allons pas débiter votre carte à cette étape."}
                                        :person/name {:label "Nom"}
                                        :person/first-name {:label "Prénom"}

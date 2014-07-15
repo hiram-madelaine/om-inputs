@@ -305,6 +305,7 @@
         (dom/div #js {:className "description"} (:desc m)))))
 
 
+
 (defn build-input
   "Handle the display of an input from state and push change on a channel.
    The map of inputs is expected in state under the key :inputs
@@ -411,8 +412,13 @@
          om/IRenderState
          (render-state [_ {:keys [chan inputs] :as state}]
                        (let [i18n (om/get-shared owner :i18n)
-                             lang (:lang app)]
-                         (dom/fieldset nil (dom/form #js {:className "form"
+                             lang (:lang app)
+                             title (get-in i18n [lang comp-name :title])]
+                         (dom/div #js{:className "panel panel-default"}
+                                  (when title
+                                    (dom/div #js {:className "panel-heading"}
+                                             (dom/h3 #js {:className "panel-title"} title)))
+                                  (dom/form #js {:className "panel-body"
                                                           :role "form"}
                                                      (into-array (if order
                                                                   (map (fn [k]
