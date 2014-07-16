@@ -30,3 +30,17 @@
 }
 
 
+.popover {
+
+  display : block; /*By default the Boostrap popover is hidden */
+  color : #a94442;
+  width : 300px;
+  color: #a94442;
+
+}
+
+
+.input-container {
+
+  position : relative;/* This is important to position the tooltip in the middle of the input*/
+}

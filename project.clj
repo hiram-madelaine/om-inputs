@@ -1,6 +1,6 @@
-(defproject om-inputs "0.1.6-SNAPSHOT"
-  :description "Try to handle form of inputs in an Om app"
-  :url "http://example.com/FIXME"
+(defproject om-inputs "0.1.6"
+  :description "Generate Web Input Form for Om/React.js, validation included."
+  :url "https://github.com/hiram-madelaine/om-inputs"
 
   :dependencies [[org.clojure/clojure "1.5.1"]
                  [org.clojure/clojurescript "0.0-2173"]
@@ -9,7 +9,8 @@
                  [prismatic/dommy "0.1.2"]
                  [prismatic/schema "0.2.3"]
                  [com.facebook/react "0.9.0"]
-                 [jkkramer/verily "0.6.0"]]
+                 [jkkramer/verily "0.6.0"]
+                 [clj-vat/clj-vat "0.1.0"]]
 
   :plugins [[lein-cljsbuild "1.0.2"]
             [codox "0.8.10"]]

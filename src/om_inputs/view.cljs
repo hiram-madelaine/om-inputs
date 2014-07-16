@@ -41,13 +41,14 @@
   :create-person
   {:person/first-name (s/maybe s/Str)
    :person/name s/Str
-   :person/email (s/maybe s/Str)
+   :person/email s/Str
+   :person/email-confirm s/Str
    (s/optional-key :person/birthdate) s/Inst
    (s/optional-key :person/size) (s/named s/Num "size")
    :person/gender (s/enum "M" "Ms")
    :person/married s/Bool}
    display-edn
-    {:order [:person/first-name :person/name :person/email :person/gender :person/birthdate :person/size :person/married]
+    {:order [:person/first-name :person/name :person/email :person/email-confirm :person/gender :person/birthdate :person/size :person/married]
      :person/gender {:type "radio-group"}
      :validations [[:min-val 10 :person/size :person-size-min-length]
                            [:email :person/email :bad-email]]})
@@ -60,13 +61,14 @@
                                                  :desc "We won't debit your card now."}
                                         :person/name {:label "Name"}
                                         :person/email {:desc "You will never receive spam."}
+                                        :person/email-confirm {:desc "Sorry copy and paste deactivated."}
                                         :person/birthdate {:label "Birthday"}
                                         :person/first-name {:label "Firstname"}
                                         :person/size {:label "Size (cm)"}
                                         :person/gender {:label "Gender"
                                                         :data {"M" {:label "Mister"}
                                                                "Ms" {:label "Miss"}}}}}
-                  "fr" {:errors {:mandatory "Cette donnée est obligatoire"
+                  "fr" {:errors {:mandatory "Cette information est obligatoire"
                                  :bad-email "Cette adresse email est invalide"}
                         :create-person {:title "Creation du compte"
                                         :action {:label "Créer personne"

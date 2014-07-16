@@ -15,13 +15,10 @@
 
 (enable-console-print!)
 
-
 ;_________________________________________________
 ;                                                 |
 ;          Schemas                                |
 ;_________________________________________________|
-
-
 
 (def sch-i18n {:i18n {:inputs s/Any}})
 
@@ -179,6 +176,7 @@
          (map (fn [code]
                 (dom/div #js {:className "radio"}
                          (dom/input #js {:type "radio"
+                                         :id (name k)
                                          :name (name k)
                                          :value code
                                          :onClick #(put! chan [k code])}
@@ -284,18 +282,42 @@
 ;___________________________________________________________|
 
 
+(defn tooltip
+  "Display a tooltip next to the field"
+  [app owner m]
+  (reify
+    om/IDidMount
+    (did-mount [this]
+               (let [tool (om/get-node owner (str (:k m) "-tooltip"))
+                     _ (count (.-textContent tool))
+                     elem (.getElementById js/document (name (:k m)))
+                     e (.getBoundingClientRect elem)]
+                 (set! (.-left (.-style tool)) (str (.-width e) "px"))))
+    om/IRenderState
+    (render-state [this {:keys [chan mess] :as state}]
+                  (dom/div #js {:className "popover right in"
+                                :role "alert"
+                                :ref (str (:k m) "-tooltip")}
+                           (dom/div #js {:className "arrow"} "")
+                           (dom/div #js {:className "popover-content"} mess
+                                    (dom/button #js {:type "button"
+                                                     :className "close"
+                                                     :onClick #(put! chan [:kill-mess (:k m)])} "x"))))))
+
+
+
 (defn message
   "Display a dismissable error message"
   [app owner m]
   (reify om/IRenderState
-    (render-state [this {:keys [chan ] :as state}]
+    (render-state [this {:keys [chan mess ] :as state}]
                   (dom/div #js {:className "alert alert-danger"
                                 :role "alert"}
                            (dom/button #js {:type "button"
                                             :className "close"
                                             :data-dismiss "alert"
                                             :onClick #(put! chan [:kill-mess (:k m)])} "x")
-                           (:mess m)))))
+                           mess))))
 
 (defn description
   "Display a small description under the label"
@@ -308,9 +330,9 @@
 
 (defn build-input
   "Handle the display of an input from state and push change on a channel.
-   The map of inputs is expected in state under the key :inputs
-   The channel is expected in state under key :chan
-   The i18n fn is expected in shared under key :i18n"
+  The map of inputs is expected in state under the key :inputs
+  The channel is expected in state under key :chan
+  The i18n fn is expected in shared under key :i18n"
   ([owner n k t opts]
    (let [{:keys [chan inputs]} (om/get-state owner)
          lang (:lang (om/get-props owner))
@@ -323,20 +345,24 @@
          required (if (get-in inputs [k :required]) "required" "optional")
          desc (get-in i18n [n k :desc])
          attrs {:id (name k)
+                :ref (name k)
                 :className "form-control"
                 :value value
                 :onChange #(put! chan [k (e-value %)]) }]
      (dom/div #js {:className (styles "form-group" error valid)}
-           (let [mess (get-in i18n [:errors err-k])]
-            (when (and error mess)
-              (om/build message (om/get-props owner) {:opts {:mess mess :k k}
-                                                      :init-state {:chan chan}})))
+
               (dom/label #js {:htmlFor (name k)
                               :className (styles "control-label" required)}
                          label)
               (when desc (om/build description (om/get-props owner) {:opts {:desc desc}}))
               (when (:labeled opts) (dom/span #js {} value))
-              (magic-input {:k k :t t :attrs attrs :chan chan :opts opts :data (get-in i18n [n k :data])}))))
+              (dom/div #js {:className "input-container"}
+                       (magic-input {:k k :t t :attrs attrs :chan chan :opts opts :data (get-in i18n [n k :data])})
+                       (let [mess (get-in i18n [:errors err-k])]
+                         (when (and error mess)
+                           (om/build tooltip (om/get-props owner) {:opts {:k k}
+                                                                   :state {:mess mess}
+                                                                   :init-state {:chan chan}})))))))
   ([owner n k t]
    (build-input owner n k t {})))
 
@@ -419,18 +445,19 @@
                                     (dom/div #js {:className "panel-heading"}
                                              (dom/h3 #js {:className "panel-title"} title)))
                                   (dom/form #js {:className "panel-body"
-                                                          :role "form"}
-                                                     (into-array (if order
-                                                                  (map (fn [k]
-                                                                         (build-input owner comp-name k (su/get-sch schema k) opts)) order)
-                                                                  (map (fn [[k t]]
-                                                                         (build-input owner comp-name (get k :k k) t opts)) schema)))
-                                                     (dom/input #js {:type  "button"
-                                                                     :className "btn btn-primary"
-                                                                     :value (get-in i18n [lang comp-name :action :label] (str (name comp-name) " action"))
-                                                                     :onClick #(put! chan [:create inputs])})
-                                                     (om/build description app {:opts {:init-state state
-                                                                                         :desc (get-in i18n [lang comp-name :action :desc])}}))))))))))
+                                                 :role "form"}
+                                            (into-array (if order
+                                                          (map (fn [k]
+                                                                 (build-input owner comp-name k (su/get-sch schema k) opts)) order)
+                                                          (map (fn [[k t]]
+                                                                 (build-input owner comp-name (get k :k k) t opts)) schema)))
+                                            (dom/input #js {:type  "button"
+                                                            :ref (str "toto" (name comp-name))
+                                                            :className "btn btn-primary"
+                                                            :value (get-in i18n [lang comp-name :action :label] (str (name comp-name) " action"))
+                                                            :onClick #(put! chan [:create inputs])})
+                                            (om/build description app {:opts {:init-state state
+                                                                              :desc (get-in i18n [lang comp-name :action :desc])}}))))))))))
 
 
 
