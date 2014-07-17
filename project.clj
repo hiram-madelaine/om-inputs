@@ -1,4 +1,4 @@
-(defproject om-inputs "0.1.6"
+(defproject om-inputs "0.1.7"
   :description "Generate Web Input Form for Om/React.js, validation included."
   :url "https://github.com/hiram-madelaine/om-inputs"
 
