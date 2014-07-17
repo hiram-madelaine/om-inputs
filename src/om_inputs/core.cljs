@@ -172,15 +172,16 @@
 
 (defmethod magic-input "radio-group"
   [{:keys [k t data attrs chan]}]
-  (apply dom/div #js {:className "input-group"}
+  (let [_ (prn data)]
+   (apply dom/div #js {:className "input-group"}
          (map (fn [code]
                 (dom/div #js {:className "radio"}
                          (dom/input #js {:type "radio"
                                          :id (name k)
                                          :name (name k)
                                          :value code
-                                         :onClick #(put! chan [k code])}
-                                    (get-in data [code :label] (if (keyword? code) (name code) code))))) (:vs t))))
+                                         :onClick #(put! chan [k code])})
+                         (get-in data [code :label] (if (keyword? code) (name code) code)))) (:vs t)))))
 
 
 (defmethod magic-input js/Date
@@ -334,8 +335,7 @@
   The channel is expected in state under key :chan
   The i18n fn is expected in shared under key :i18n"
   ([owner n k t opts]
-   (let [{:keys [chan inputs]} (om/get-state owner)
-         lang (:lang (om/get-props owner))
+   (let [{:keys [chan inputs lang]} (om/get-state owner)
          i18n (om/get-shared owner [:i18n lang])
          label (get-in i18n [n k :label] (str/capitalize (name k)))
          value (get-in inputs [k :value])
@@ -354,7 +354,7 @@
               (dom/label #js {:htmlFor (name k)
                               :className (styles "control-label" required)}
                          label)
-              (when desc (om/build description (om/get-props owner) {:opts {:desc desc}}))
+              (when desc (dom/div #js {:className "description"} desc))
               (when (:labeled opts) (dom/span #js {} value))
               (dom/div #js {:className "input-container"}
                        (magic-input {:k k :t t :attrs attrs :chan chan :opts opts :data (get-in i18n [n k :data])})
@@ -436,9 +436,8 @@
          (will-update [this props state]
                          )
          om/IRenderState
-         (render-state [_ {:keys [chan inputs] :as state}]
+         (render-state [_ {:keys [chan inputs lang] :as state}]
                        (let [i18n (om/get-shared owner :i18n)
-                             lang (:lang app)
                              title (get-in i18n [lang comp-name :title])]
                          (dom/div #js{:className "panel panel-default"}
                                   (when title
@@ -456,8 +455,7 @@
                                                             :className "btn btn-primary"
                                                             :value (get-in i18n [lang comp-name :action :label] (str (name comp-name) " action"))
                                                             :onClick #(put! chan [:create inputs])})
-                                            (om/build description app {:opts {:init-state state
-                                                                              :desc (get-in i18n [lang comp-name :action :desc])}}))))))))))
+                                            (dom/div #js {:className "description"} (get-in i18n [lang comp-name :action :desc])))))))))))
 
 
 

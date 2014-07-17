@@ -11,7 +11,7 @@
 (def lang-sch {:lang (s/enum "en" "fr")})
 
 
-(def app-state (atom {:lang "en"}))
+(def app-state (atom {}))
 
 
 
@@ -20,7 +20,7 @@
   (js/alert edn))
 
 
-(om/root
+#_(om/root
 (make-input-comp
  :language
  lang-sch
@@ -36,8 +36,8 @@
                                    :lang {:label "Langue"
                                           :data {"en" "Anglais"
                                                  "fr" "Français"}}}}}} })
-(om/root
- (make-input-comp
+
+(def input-view (make-input-comp
   :create-person
   {:person/first-name (s/maybe s/Str)
    :person/name s/Str
@@ -51,7 +51,27 @@
     {:order [:person/first-name :person/name :person/email :person/email-confirm :person/gender :person/birthdate :person/size :person/married]
      :person/gender {:type "radio-group"}
      :validations [[:min-val 10 :person/size :person-size-min-length]
-                           [:email :person/email :bad-email]]})
+                           [:email :person/email :bad-email]]}))
+
+
+(defn app
+  [app owner]
+  (reify
+    om/IInitState
+    (init-state
+     [this]
+     {:lang "fr"})
+    om/IRenderState
+    (render-state
+     [this state]
+     (dom/div #js {:className "container"}
+       (dom/div #js {}
+              (dom/img #js {:src "fr.png" :className "flag" :onClick #(om/set-state! owner [:lang] "fr")})
+              (dom/img #js {:src "gb.png" :className "flag" :onClick #(om/set-state! owner [:lang] "en")}))
+      (om/build input-view app {:state state})))))
+
+(om/root
+ app
  app-state
  {:target (. js/document (getElementById "person"))
   :shared {:i18n {"en" {:errors {:bad-email "The format of the email is invalid"
@@ -74,9 +94,10 @@
                                         :action {:label "Créer personne"
                                                  :desc "Nous n'allons pas débiter votre carte à cette étape."}
                                        :person/name {:label "Nom"}
+                                       :person/email {:desc "Nous n'envoyons jamais de spam, promis !"}
                                        :person/first-name {:label "Prénom"}
                                        :person/birthdate {:label "Date de naissance"}
                                        :person/size {:label "Taille (cm)"}
                                        :person/gender {:label "Genre"
-                                                       :data {"M" "Monsieur"
-                                                              "Ms" "Madame"}}}}}}})
+                                                       :data {"M" {:label "Monsieur"}
+                                                              "Ms" {:label "Madame"}}}}}}}})

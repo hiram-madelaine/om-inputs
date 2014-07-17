@@ -44,3 +44,8 @@
 
   position : relative;/* This is important to position the tooltip in the middle of the input*/
 }
+
+.flag {
+  margin : 1px;
+  padding : 1px;
+}
