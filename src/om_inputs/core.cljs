@@ -300,7 +300,7 @@
                                 :ref (str (:k m) "-tooltip")}
                            (dom/div #js {:className "arrow"} "")
                            (dom/div #js {:className "popover-content"} mess
-                                    (dom/button #js {:type "button"
+                                    (dom/div #js {:type "button"
                                                      :className "close"
                                                      :onClick #(put! chan [:kill-mess (:k m)])} "x"))))))
 
