@@ -9,8 +9,7 @@
                  [prismatic/dommy "0.1.2"]
                  [prismatic/schema "0.2.3"]
                  [com.facebook/react "0.9.0"]
-                 [jkkramer/verily "0.6.0"]
-                 [clj-vat/clj-vat "0.1.0"]]
+                 [jkkramer/verily "0.6.0"]]
 
   :plugins [[lein-cljsbuild "1.0.2"]
             [codox "0.8.10"]]
