@@ -172,8 +172,7 @@
 
 (defmethod magic-input "radio-group"
   [{:keys [k t data attrs chan]}]
-  (let [_ (prn data)]
-   (apply dom/div #js {:className "input-group"}
+  (apply dom/div #js {:className "input-group"}
          (map (fn [code]
                 (dom/div #js {:className "radio"}
                          (dom/input #js {:type "radio"
@@ -181,7 +180,7 @@
                                          :name (name k)
                                          :value code
                                          :onClick #(put! chan [k code])})
-                         (get-in data [code :label] (if (keyword? code) (name code) code)))) (:vs t)))))
+                         (get-in data [code :label] (if (keyword? code) (name code) code)))) (:vs t))))
 
 
 (defmethod magic-input js/Date
