@@ -2,16 +2,16 @@
   :description "Generate Web Input Form for Om/React.js, validation included."
   :url "https://github.com/hiram-madelaine/om-inputs"
 
-  :dependencies [[org.clojure/clojure "1.5.1"]
-                 [org.clojure/clojurescript "0.0-2173"]
+  :dependencies [[org.clojure/clojure "1.6.0"]
+                 [org.clojure/clojurescript "0.0-2268"]
                  [org.clojure/core.async "0.1.267.0-0d7780-alpha"]
                  [om "0.6.4"]
                  [prismatic/dommy "0.1.2"]
-                 [prismatic/schema "0.2.3"]
+                 [prismatic/schema "0.2.4"]
                  [com.facebook/react "0.9.0"]
                  [jkkramer/verily "0.6.0"]]
 
-  :plugins [[lein-cljsbuild "1.0.2"]
+  :plugins [[lein-cljsbuild "1.0.3"]
             [codox "0.8.10"]]
 
   :codox {:language :clojurescript
