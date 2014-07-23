@@ -11,7 +11,9 @@
             [clojure.set :as st]
             [om-inputs.date-utils :as d]
             [om-inputs.schema-utils :as su]
-            [jkkramer.verily :as v]))
+            [om-inputs.i18n :refer [comp-i18n label desc desc? data]]
+            [jkkramer.verily :as v]
+            ))
 
 (enable-console-print!)
 
@@ -35,6 +37,10 @@
 (def sch-chan {:chan ManyToManyChannel})
 
 (def sch-state (merge sch-inputs sch-chan {s/Any s/Any}))
+
+
+
+
 
 
 
@@ -333,36 +339,35 @@
   The map of inputs is expected in state under the key :inputs
   The channel is expected in state under key :chan
   The i18n fn is expected in shared under key :i18n"
-  ([owner n k t opts]
+  ([owner k t i18n opts]
    (let [{:keys [chan inputs lang]} (om/get-state owner)
-         i18n (om/get-shared owner [:i18n lang])
-         label (get-in i18n [n k :label] (str/capitalize (name k)))
+         full-i18n (om/get-shared owner [:i18n lang])
          value (get-in inputs [k :value])
          error (when-not (get-in inputs [k :valid] true) "has-error has-feedback")
          [err-k & errs] (when error (get-in inputs [k :error]))
          valid (when (get-in inputs [k :valid]) "has-success")
          required (if (get-in inputs [k :required]) "required" "optional")
-         desc (get-in i18n [n k :desc])
          attrs {:id (name k)
                 :ref (name k)
                 :className "form-control"
                 :value value
+                :onBlur #(put! chan [:validate [k (e-value %)]])
                 :onChange #(put! chan [k (e-value %)]) }]
      (dom/div #js {:className (styles "form-group" error valid)}
 
               (dom/label #js {:htmlFor (name k)
                               :className (styles "control-label" required)}
-                         label)
-              (when desc (dom/div #js {:className "description"} desc))
+                         (label i18n k))
+              (when (desc? i18n k) (dom/div #js {:className "description"} (desc i18n k)))
               (when (:labeled opts) (dom/span #js {} value))
               (dom/div #js {:className "input-container"}
-                       (magic-input {:k k :t t :attrs attrs :chan chan :opts opts :data (get-in i18n [n k :data])})
-                       (let [mess (get-in i18n [:errors err-k])]
+                       (magic-input {:k k :t t :attrs attrs :chan chan :opts opts :data (data i18n k)})
+                       (let [mess (get-in full-i18n [:errors err-k])]
                          (when (and error mess)
                            (om/build tooltip (om/get-props owner) {:opts {:k k}
                                                                    :state {:mess mess}
                                                                    :init-state {:chan chan}})))))))
-  ([owner n k t]
+  ([owner k i18n t]
    (build-input owner n k t {})))
 
 
@@ -420,6 +425,8 @@
                           (let [[k v] (<! chan)]
                             (condp = k
                               :kill-mess (om/update-state! owner [:inputs v] #(dissoc % :error) )
+                              :validate (let [[f v] v]
+                                          (prn f v))
                               :create (let [raw (pre-validation v)
                                             coerced (schema-coercer raw)]
                                         (if-let [errs (or (checker raw) (validation coerced))]
@@ -436,8 +443,8 @@
                          )
          om/IRenderState
          (render-state [_ {:keys [chan inputs lang] :as state}]
-                       (let [i18n (om/get-shared owner :i18n)
-                             title (get-in i18n [lang comp-name :title])]
+                       (let [labels (comp-i18n owner comp-name schema)
+                             title (get-in labels [:title])]
                          (dom/div #js{:className "panel panel-default"}
                                   (when title
                                     (dom/div #js {:className "panel-heading"}
@@ -446,15 +453,14 @@
                                                  :role "form"}
                                             (into-array (if order
                                                           (map (fn [k]
-                                                                 (build-input owner comp-name k (su/get-sch schema k) opts)) order)
+                                                                 (build-input owner k (su/get-sch schema k) labels opts)) order)
                                                           (map (fn [[k t]]
-                                                                 (build-input owner comp-name (get k :k k) t opts)) schema)))
+                                                                 (build-input owner (get k :k k) t labels opts)) schema)))
                                             (dom/input #js {:type  "button"
-                                                            :ref (str "toto" (name comp-name))
                                                             :className "btn btn-primary"
-                                                            :value (get-in i18n [lang comp-name :action :label] (str (name comp-name) " action"))
+                                                            :value (label labels :action )
                                                             :onClick #(put! chan [:create inputs])})
-                                            (dom/div #js {:className "description"} (get-in i18n [lang comp-name :action :desc])))))))))))
+                                            (dom/div #js {:className "description"} (desc labels :action)))))))))))
 
 
 
