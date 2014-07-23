@@ -368,8 +368,21 @@
                                                                    :state {:mess mess}
                                                                    :init-state {:chan chan}})))))))
   ([owner k i18n t]
-   (build-input owner n k t {})))
+   (build-input owner k t i18n {})))
 
+
+(s/defn ^:always-validate sch-glo->unit :- {s/Keyword s/Any}
+  "Transform a Schema into a map of key -> individual Schema"
+  [sch ]
+  (into {} (for [ [k t] sch]
+    {(get k :k k) {k t}})))
+
+(defn unit->coercer [sch]
+  (apply merge (for [[k s] (sch-glo->unit sch)]
+                 {k (partial validate (coerce/coercer s validation-coercer) transform-schema-errors)})))
+
+
+((:toto (unit->coercer {:toto s/Str})) {:toto nil})
 
 
 (s/defn ^:always-validate build-init-state :- sch-business-state
@@ -406,7 +419,8 @@
          schema-coercer (coerce/coercer schema validation-coercer)
          validators (:validations opts)
          validation (partial validate (partial verily validators) transform-verily-errors)
-         checker (partial validate schema-coercer transform-schema-errors)]
+         checker (partial validate schema-coercer transform-schema-errors)
+         unit-coercers (unit->coercer schema)]
      (fn [app owner]
        (reify
          om/IDisplayName
@@ -425,8 +439,10 @@
                           (let [[k v] (<! chan)]
                             (condp = k
                               :kill-mess (om/update-state! owner [:inputs v] #(dissoc % :error) )
-                              :validate (let [[f v] v]
-                                          (prn f v))
+                              :validate (let [[f d] v
+                                              raw {f (if (str/blank? d) nil d)}]
+                                          (when-let [errs ((f unit-coercers)  raw)]
+                                            (om/set-state! owner [:inputs] (handle-errors (om/get-state owner :inputs) errs))))
                               :create (let [raw (pre-validation v)
                                             coerced (schema-coercer raw)]
                                         (if-let [errs (or (checker raw) (validation coerced))]
