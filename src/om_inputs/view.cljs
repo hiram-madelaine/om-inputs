@@ -43,7 +43,7 @@
    :person/name s/Str
    :person/email s/Str
    :person/email-confirm s/Str
-   (s/optional-key :person/birthdate) s/Inst
+   :person/birthdate s/Inst
    (s/optional-key :person/size) (s/named s/Num "size")
    :person/gender (s/enum "M" "Ms")
    :person/married s/Bool}
@@ -66,8 +66,8 @@
      [this state]
      (dom/div #js {:className "container"}
        (dom/div #js {}
-              (dom/img #js {:src "fr.png" :className "flag" :onClick #(om/set-state! owner [:lang] "fr")})
-              (dom/img #js {:src "gb.png" :className "flag" :onClick #(om/set-state! owner [:lang] "en")}))
+              (dom/a #js {:href "#"} (dom/img #js {:src "fr.png" :className "flag" :onClick #(om/set-state! owner [:lang] "fr")}))
+              (dom/a #js {:href "#"} (dom/img #js {:src "gb.png" :className "flag" :onClick #(om/set-state! owner [:lang] "en")})))
       (om/build input-view app {:state state})))))
 
 (om/root

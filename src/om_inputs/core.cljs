@@ -81,7 +81,8 @@
 
  (defn parse-date
    ([n o]
-    (d/parse FULL-DATE n))
+    (when-not (str/blank? n)
+     (d/parse FULL-DATE n)))
    ([n]
     (parse-date n nil)))
 
@@ -143,7 +144,7 @@
       n)))
 
 (defn sch-type [t]
-  "This function is the link between Schema and the type of input.
+  "This function tries to determine the leaf Schema.
    s/Str, s/Int are inclosed in Predicate
    s/Inst is represented "
   (condp = (type t)
@@ -156,7 +157,7 @@
 
 (def coertion-fns
   {integer? only-integer
-   js/Date parse-date
+  ; js/Date parse-date ;Let schema coercion deal with data coercion
    js/Number only-number})
 
 
@@ -344,6 +345,21 @@
                  :when (or req (not (str/blank? in)))]
              {k (:value m)} )))
 
+
+
+(s/defn ^:always-validate sch-glo->unit :- {s/Keyword s/Any}
+  "Transform a Schema into a map of key -> individual Schema"
+  [sch ]
+  (into {} (for [ [k t] sch]
+    {(get k :k k) {k t}})))
+
+(s/defn ^:always-validate unit->coercer :- {s/Keyword s/Any}
+  [sch]
+  (apply merge (for [[k s] (sch-glo->unit sch)]
+                 {k (partial validate (coerce/coercer s validation-coercer) transform-schema-errors)})))
+
+
+
 ;___________________________________________________________
 ;                                                           |
 ;          Component builders                               |
@@ -432,16 +448,6 @@
   ([owner k i18n t]
    (build-input owner k t i18n {})))
 
-
-(s/defn ^:always-validate sch-glo->unit :- {s/Keyword s/Any}
-  "Transform a Schema into a map of key -> individual Schema"
-  [sch ]
-  (into {} (for [ [k t] sch]
-    {(get k :k k) {k t}})))
-
-(defn unit->coercer [sch]
-  (apply merge (for [[k s] (sch-glo->unit sch)]
-                 {k (partial validate (coerce/coercer s validation-coercer) transform-schema-errors)})))
 
 
 
