@@ -22,6 +22,9 @@
 (def sch-i18n-field (merge  sch-i18n-enum-labels sch-i18n-field-labels))
 
 
+(comment there is something really strange concerning
+  the definition of Var that contains schema and that the compiler sees as undeclared )
+
 #_(def sch-i18n-comp {(s/optional-key :title) s/Str
                     (s/optional-key :action) sch-i18n-field-labels})
 
