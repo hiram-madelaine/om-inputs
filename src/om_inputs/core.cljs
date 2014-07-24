@@ -24,12 +24,16 @@
 
 (def sch-i18n {:i18n {:inputs s/Any}})
 
+
+(def sch-field-state {:value s/Any
+                      :required s/Bool
+                      (s/optional-key :valid) s/Bool
+                      (s/optional-key :error) [s/Keyword]})
+
+
 (def sch-business-state
   "Local business state's data structure "
-  {s/Keyword {:value s/Any
-              :required s/Bool
-              (s/optional-key :valid) s/Bool
-              (s/optional-key :error) [s/Keyword]}})
+  {s/Keyword sch-field-state})
 
 
 (def sch-inputs {:inputs sch-business-state})
@@ -65,6 +69,22 @@
   (str/join " " args))
 
 
+
+;_________________________________________________
+;                                                 |
+;          Date Utils                             |
+;_________________________________________________|
+
+
+
+ (def FULL-DATE "yyyy-MM-dd")
+
+ (defn parse-date
+   ([n o]
+    (d/parse FULL-DATE n))
+   ([n]
+    (parse-date n nil)))
+
 ;_________________________________________________
 ;                                                 |
 ;       prismatic/Schema related Utils            |
@@ -93,8 +113,8 @@
 
 (def validation-coercer
   (merge coerce/+string-coercions+ {s/Str empty-string-coercer
-                                    (s/maybe s/Str) empty-string-coercer}))
-
+                                    (s/maybe s/Str) empty-string-coercer
+                                    s/Inst parse-date}))
 
  (defn only-integer
    "Only authorize integer or empty string.
@@ -121,14 +141,6 @@
     (if (js/isNaN n)
       o
       n)))
-
-
- (def FULL-DATE "yyyy-MM-dd")
-
- (defn parse-date [n o]
-   (d/parse FULL-DATE n ))
-
-
 
 (defn sch-type [t]
   "This function is the link between Schema and the type of input.
@@ -266,6 +278,43 @@
            {k [:mandatory]}))))
 
 
+(s/defn ^:always-validate validate? :- s/Bool
+  [s :- sch-field-state]
+  (let [{:keys [required value]} s]
+   (or required
+      (not (str/blank? value)))))
+
+
+(s/defn ^:always-validate add-field-error :- sch-business-state
+  "Handle errors for a single field"
+  [state :- sch-business-state
+   errs :- sch-errors]
+  (reduce (fn [s e]
+            (-> s
+                (assoc-in [e :valid] false)
+                (assoc-in [e :error] (e errs)))) state (keys errs)))
+
+(s/defn ^:always-validate remove-field-error :- sch-business-state
+  [state :- sch-business-state
+   k :- s/Keyword]
+  (-> state
+      (assoc-in [k :valid] true)
+      (update-in [k] dissoc :error)))
+
+
+(defn field-validation!
+  "Validate a single field of the local business state"
+  [owner f coercers]
+  (let [business-state (om/get-state owner :inputs)
+        field-state (f business-state)]
+    (when (validate? field-state)
+      (om/set-state! owner [:inputs]
+                     (if-let [errs ((f coercers)  {f (:value field-state)})]
+                       (add-field-error business-state errs)
+                       (remove-field-error business-state f))))))
+
+
+
 (s/defn ^:always-validate  handle-errors :- sch-business-state
   "Set valid to false for each key in errors, true if absent"
   [state :- sch-business-state
@@ -281,6 +330,19 @@
               (-> s
                (assoc-in [e :valid] true)
                (update-in [e] dissoc :error))) state valid-ks)))
+
+
+(s/defn ^:always-validate pre-validation :- {s/Keyword s/Any}
+  "Create the map that will be validated by the Schema :
+   Only keeps :
+   - required keys
+   - optional keys with non blank values"
+  [v :- sch-business-state]
+  (into {} (for [[k m] v
+                 :let [in (:value m)
+                       req (:required m)]
+                 :when (or req (not (str/blank? in)))]
+             {k (:value m)} )))
 
 ;___________________________________________________________
 ;                                                           |
@@ -351,7 +413,7 @@
                 :ref (name k)
                 :className "form-control"
                 :value value
-                :onBlur #(put! chan [:validate [k (e-value %)]])
+                :onBlur #(put! chan [:validate k])
                 :onChange #(put! chan [k (e-value %)]) }]
      (dom/div #js {:className (styles "form-group" error valid)}
 
@@ -382,10 +444,9 @@
                  {k (partial validate (coerce/coercer s validation-coercer) transform-schema-errors)})))
 
 
-((:toto (unit->coercer {:toto s/Str})) {:toto nil})
 
 
-(s/defn ^:always-validate build-init-state :- sch-business-state
+(s/defn ^:always-validate  build-init-state :- sch-business-state
   "Build the initial business local state backing the inputs in the form."
   [sch]
   (into {} (for [[k t] sch
@@ -393,17 +454,7 @@
              [fk {:value ""
                   :required (required? k)}])))
 
-(s/defn ^:always-validate pre-validation :- {s/Keyword s/Any}
-  "Create the map that will be validated by the Schema :
-   Only keeps :
-   - required keys
-   - optional keys with non blank values"
-  [v :- sch-business-state]
-  (into {} (for [[k m] v
-                 :let [in (:value m)
-                       req (:required m)]
-                 :when (or req (not (str/blank? in)))]
-             {k (:value m)} )))
+
 
 (s/defn make-input-comp
   "Build an input form Om component based on a prismatic/Schema"
@@ -430,19 +481,17 @@
          (init-state [_]
                      {:chan (chan)
                       :inputs (build-init-state schema)
-                      :coercers (build-coercer schema)})
+                      :coercers (build-coercer schema)
+                      :unit-coercers unit-coercers})
          om/IWillMount
          (will-mount [this]
-                     (let [{:keys [coercers chan inputs] :as state} (om/get-state owner)]
+                     (let [{:keys [coercers unit-coercers chan inputs] :as state} (om/get-state owner)]
                        (go
                         (loop []
                           (let [[k v] (<! chan)]
                             (condp = k
                               :kill-mess (om/update-state! owner [:inputs v] #(dissoc % :error) )
-                              :validate (let [[f d] v
-                                              raw {f (if (str/blank? d) nil d)}]
-                                          (when-let [errs ((f unit-coercers)  raw)]
-                                            (om/set-state! owner [:inputs] (handle-errors (om/get-state owner :inputs) errs))))
+                              :validate (field-validation! owner v unit-coercers)
                               :create (let [raw (pre-validation v)
                                             coerced (schema-coercer raw)]
                                         (if-let [errs (or (checker raw) (validation coerced))]

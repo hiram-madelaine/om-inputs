@@ -114,8 +114,45 @@ Hence, the example schema will produce a form with these input fields :
 * An optional select that that present the choices "M" and "Ms" ;
 * A validation button that trigger the callback.
 
-#### The validation
+#### Fields validation
 
+There are two type of validations :
+
+1.  Schema validation
+2.  Verily validation
+
+##### Schema Validation
+
+Schema is able to check that a data structure is conform :
+
+In case of a map :
+
+* all required keys are present ;
+* All values are of the correct type ;
+
+This job is done by Schema/Coercion :
+When a value is not of the declared type, we have a chance to coerce it in the correct type.
+
+
+The problem with an HTMl form is that all data are strings.
+
+* An empty string represents nil
+* Other types must be coerced to the correct type : s/Num, s/Int, s/Inst
+
+
+
+##### When validations occur ?
+
+###### Inline validation
+
+Each field is validated when leaving the input.
+
+If the field is required and left empty the field is maked invalid and a tooltip is displayed.
+
+
+
+
+###### Submission validation
 
 When clicking the action button, the form is validated according to the Schema :
 
