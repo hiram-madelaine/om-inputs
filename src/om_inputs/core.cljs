@@ -45,9 +45,6 @@
 
 
 
-
-
-
 ;_________________________________________________
 ;                                                 |
 ;          Events Utils                           |
@@ -229,7 +226,7 @@
 
 ;___________________________________________________________
 ;                                                           |
-;          Errors state handler                             |
+;          Errors Schemas                             |
 ;___________________________________________________________|
 
 
@@ -237,18 +234,6 @@
   "Describes the om-input's error data structure.
    A field can have multiples errors."
   {s/Keyword [s/Keyword]})
-
-(defn validate
-  "Generic sequence of validation.
-  The first args can be partially applied to generate a custom validator."
-  [validation-fn post m]
-  (post (validation-fn m)))
-
-
-(defn verily
-  "Inversion of parameters for the verily validation function for partial application of the rules."
-  [validators m]
-  (v/validate m validators))
 
 
 (def sch-verily-errs
@@ -260,14 +245,19 @@
   "Describe the Scheam errors data structure"
   {s/Keyword s/Any})
 
-(s/defn transform-verily-errors :- sch-errors
-  "Transforms the Verily's error data structure into the common error data structure."
-  [errs :- sch-verily-errs]
-  (when (seq errs)
-    (apply merge-with concat {}
-         (for [{:keys [keys msg]} errs
-               k keys]
-           {k [msg]}))))
+
+;___________________________________________________________
+;                                                           |
+;          Validation handlers                              |
+;___________________________________________________________|
+
+
+(defn validate
+  "Generic sequence of validation.
+  The first args can be partially applied to generate a custom validator."
+  [validation-fn post m]
+  (post (validation-fn m)))
+
 
 (s/defn transform-schema-errors :- sch-errors
   "Transforms the Schema's error data structure into the common error data structure.
@@ -277,6 +267,21 @@
    (apply merge-with concat
          (for [[k _] errors]
            {k [:mandatory]}))))
+
+(defn verily
+  "Inversion of parameters for the verily validation function for partial application of the rules."
+  [validators m]
+  (v/validate m validators))
+
+
+(s/defn transform-verily-errors :- sch-errors
+  "Transforms the Verily's error data structure into the common error data structure."
+  [errs :- sch-verily-errs]
+  (when (seq errs)
+    (apply merge-with concat {}
+         (for [{:keys [keys msg]} errs
+               k keys]
+           {k [msg]}))))
 
 
 (s/defn ^:always-validate validate? :- s/Bool
@@ -481,57 +486,61 @@
      (fn [app owner]
        (reify
          om/IDisplayName
-         (display-name [_]
-                       (name comp-name))
+         (display-name
+          [_]
+          (name comp-name))
          om/IInitState
-         (init-state [_]
-                     {:chan (chan)
-                      :inputs (build-init-state schema)
-                      :coercers (build-coercer schema)
-                      :unit-coercers unit-coercers})
+         (init-state
+          [_]
+          {:chan (chan)
+           :inputs (build-init-state schema)
+           :coercers (build-coercer schema)
+           :unit-coercers unit-coercers})
          om/IWillMount
-         (will-mount [this]
-                     (let [{:keys [coercers unit-coercers chan inputs] :as state} (om/get-state owner)]
-                       (go
-                        (loop []
-                          (let [[k v] (<! chan)]
-                            (condp = k
-                              :kill-mess (om/update-state! owner [:inputs v] #(dissoc % :error) )
-                              :validate (field-validation! owner v unit-coercers)
-                              :create (let [raw (pre-validation v)
-                                            coerced (schema-coercer raw)]
-                                        (if-let [errs (or (checker raw) (validation coerced))]
-                                              (om/set-state! owner [:inputs] (handle-errors v errs))
-                                              (do
-                                                (om/set-state! owner [:inputs] inputs)
-                                                (action app owner coerced))))
-                              (let [coerce (get coercers k (fn [n _] n))
-                                    old-val (om/get-state owner [:inputs k :value])]
-                               (om/set-state! owner [:inputs k :value] (coerce v old-val)))))
-                          (recur)))))
+         (will-mount
+          [this]
+          (let [{:keys [coercers unit-coercers chan inputs] :as state} (om/get-state owner)]
+            (go
+             (loop []
+               (let [[k v] (<! chan)]
+                 (condp = k
+                   :kill-mess (om/update-state! owner [:inputs v] #(dissoc % :error) )
+                   :validate (field-validation! owner v unit-coercers)
+                   :create (let [raw (pre-validation v)
+                                 coerced (schema-coercer raw)]
+                             (if-let [errs (or (checker raw) (validation coerced))]
+                               (om/set-state! owner [:inputs] (handle-errors v errs))
+                               (do
+                                 (om/set-state! owner [:inputs] inputs)
+                                 (action app owner coerced))))
+                   (let [coerce (get coercers k (fn [n _] n))
+                         old-val (om/get-state owner [:inputs k :value])]
+                     (om/set-state! owner [:inputs k :value] (coerce v old-val)))))
+               (recur)))))
          om/IWillUpdate
-         (will-update [this props state]
-                         )
+         (will-update
+          [this props state])
          om/IRenderState
-         (render-state [_ {:keys [chan inputs lang] :as state}]
-                       (let [labels (comp-i18n owner comp-name schema)
-                             title (get-in labels [:title])]
-                         (dom/div #js{:className "panel panel-default"}
-                                  (when title
-                                    (dom/div #js {:className "panel-heading"}
-                                             (dom/h3 #js {:className "panel-title"} title)))
-                                  (dom/form #js {:className "panel-body"
-                                                 :role "form"}
-                                            (into-array (if order
-                                                          (map (fn [k]
-                                                                 (build-input owner k (su/get-sch schema k) labels opts)) order)
-                                                          (map (fn [[k t]]
-                                                                 (build-input owner (get k :k k) t labels opts)) schema)))
-                                            (dom/input #js {:type  "button"
-                                                            :className "btn btn-primary"
-                                                            :value (label labels :action )
-                                                            :onClick #(put! chan [:create inputs])})
-                                            (dom/div #js {:className "description"} (desc labels :action)))))))))))
+         (render-state
+          [_ {:keys [chan inputs lang] :as state}]
+          (let [labels (comp-i18n owner comp-name schema)
+                title (get-in labels [:title])]
+            (dom/div #js{:className "panel panel-default"}
+                     (when title
+                       (dom/div #js {:className "panel-heading"}
+                                (dom/h3 #js {:className "panel-title"} title)))
+                     (dom/form #js {:className "panel-body"
+                                    :role "form"}
+                               (into-array (if order
+                                             (map (fn [k]
+                                                    (build-input owner k (su/get-sch schema k) labels opts)) order)
+                                             (map (fn [[k t]]
+                                                    (build-input owner (get k :k k) t labels opts)) schema)))
+                               (dom/input #js {:type  "button"
+                                               :className "btn btn-primary"
+                                               :value (label labels :action )
+                                               :onClick #(put! chan [:create inputs])})
+                               (dom/div #js {:className "description"} (desc labels :action)))))))))))
 
 
 
