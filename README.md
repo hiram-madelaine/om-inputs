@@ -9,7 +9,9 @@ Using Schema allows the :
 * Coercion of String to proper types.
 
 
-## See it in action
+## Show me what looks like !
+
+[See it in action](https://rawgit.com/hiram-madelaine/om-inputs/master/release.html#)
 
 The project contains the example that is used in the documentation
 
