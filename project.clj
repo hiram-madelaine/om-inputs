@@ -38,7 +38,7 @@
                         :compiler {:output-to "main.js"
                                    :optimizations :advanced
                                    ;:closure-warnings {:check-useless-code :on}
-                                   :pretty-print true
-                                   :pseudo-names true
+                                   :pretty-print false
+                                   :pseudo-names false
                                    :preamble ["react/react.min.js"]
                                    :externs ["react/externs/react.js"]}}]})
