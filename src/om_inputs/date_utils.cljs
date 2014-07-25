@@ -50,7 +50,7 @@
 (defprotocol SetDate
   (setInputValue [this v]))
 
-(extend-type InputDatePicker
+#_(extend-type InputDatePicker
   SetDate
   (setInputValue [this v]
                  (let [el (.getElement this)]
@@ -67,7 +67,3 @@
                        (set! (.-value el) v)))))
   (InputDatePicker. (DateTimeFormat. f) (DateTimeParse. f) nil nil)))
 
-(defn add-date-picker!
-  [id f]
-  (let [dp (date-picker f)]
-   (.decorate dp (. js/document (getElementById id)))))

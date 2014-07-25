@@ -13,7 +13,7 @@
             [om-inputs.schema-utils :as su]
             [om-inputs.i18n :refer [comp-i18n label desc desc? data]]
             [jkkramer.verily :as v]
-            ))
+            [goog.events]))
 
 (enable-console-print!)
 
@@ -27,6 +27,7 @@
 
 (def sch-field-state {:value s/Any
                       :required s/Bool
+                      :type s/Any
                       (s/optional-key :valid) s/Bool
                       (s/optional-key :error) [s/Keyword]})
 
@@ -74,7 +75,9 @@
 
 
 
- (def FULL-DATE "yyyy-MM-dd")
+ #_(def FULL-DATE "yyyy-MM-dd")
+
+ (def FULL-DATE "dd/MM/yyyy")
 
  (defn parse-date
    ([n o]
@@ -199,10 +202,11 @@
                          (get-in data [code :label] (if (keyword? code) (name code) code)))) (:vs t))))
 
 
-(defmethod magic-input js/Date
+#_(defmethod magic-input js/Date
  [{:keys [attrs]}]
   (let [date-in (d/fmt FULL-DATE (:value attrs))]
-   (dom/input (clj->js (merge attrs {:type "date"
+   (dom/input (clj->js (merge attrs
+                              {:type "date"
                                :value date-in})))))
 
 (defmethod magic-input js/Boolean
@@ -455,15 +459,33 @@
 
 
 
-
-
 (s/defn ^:always-validate  build-init-state :- sch-business-state
   "Build the initial business local state backing the inputs in the form."
   [sch]
   (into {} (for [[k t] sch
                  :let [fk (get k :k k)]]
              [fk {:value ""
-                  :required (required? k)}])))
+                  :required (required? k)
+                  :type (sch-type t)}])))
+
+
+(defn add-date-picker!
+  [k node chan f]
+  (let [dp (d/date-picker f)]
+    (goog.events/listen dp goog.ui.DatePicker.Events.CHANGE #(put! chan [k (d/fmt f (.-date %))]))
+    (.decorate dp node )))
+
+
+
+(defn handle-date-fields!
+  [owner f]
+  (let [chan (om/get-state owner :chan)
+        state (om/get-state owner :inputs)
+        date-fieds (for [[k {:keys [type]}] state
+                         :when (= s/Inst type)]
+                     k)]
+    (doseq [k date-fieds]
+      (add-date-picker! k (om/get-node owner (name k)) chan f))))
 
 
 
@@ -517,6 +539,9 @@
                          old-val (om/get-state owner [:inputs k :value])]
                      (om/set-state! owner [:inputs k :value] (coerce v old-val)))))
                (recur)))))
+         om/IDidMount
+         (did-mount [this]
+                    (handle-date-fields! owner FULL-DATE))
          om/IWillUpdate
          (will-update
           [this props state])
