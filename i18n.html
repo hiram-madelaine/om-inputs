@@ -1,0 +1,35 @@
+#### i18n
+
+It is possible to provide the labels and error messages in multiple languages.
+Just put a map in the shared data :
+
+```
+(om/root
+ app-view
+ app-state
+ {:target (. js/document (getElementById "person"))
+  :shared {:i18n {"en" {:language {:action "Change language"
+                                   :lang {:label "Language"
+                                          :data {"en" "English"
+                                                 "fr" "French"}}}
+                        :create-person {:action "Create person"
+                                        :person/name {:label "Name"}
+                                        :person/birthdate {:label "Birthday"}
+                                        :person/first-name {:label "Firstname"}
+                                        :person/size {:label "Size"}
+                                        :person/gender {:label "Gender"
+                                                        :data {"M" "Mister"
+                                                               "Ms" "Miss"}}}}
+                  "fr" {:language {:action "Choix de la langue"
+                                   :lang {:label "Langue"
+                                          :data {"en" "Anglais"
+                                                 "fr" "Français"}}}
+                        :create-person {:action "Créer personne"
+                                       :person/name {:label "Nom"}
+                                       :person/first-name {:label "Prénom"}
+                                       :person/birthdate {:label "Date de naissance"}
+                                       :person/size {:label "Taille"}
+                                       :person/gender {:label "Genre"
+                                                       :data {"M" "Monsieur"
+                                                              "Ms" "Madame"}}}}}}})
+                                                              
