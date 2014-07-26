@@ -31,37 +31,264 @@
     <!-- MAIN CONTENT -->
     <div id="main_content_wrap" class="outer">
       <section id="main_content" class="inner">
-        <h3>
-<a name="welcome-to-github-pages" class="anchor" href="#welcome-to-github-pages"><span class="octicon octicon-link"></span></a>Welcome to GitHub Pages.</h3>
+        <h1>
+<a name="the-goal-of-this-library-is-to-rapidly-prototype-ui-with-omreact" class="anchor" href="#the-goal-of-this-library-is-to-rapidly-prototype-ui-with-omreact"><span class="octicon octicon-link"></span></a>The goal of this library is to rapidly prototype UI with Om/React</h1>
 
-<p>This automatic page generator is the easiest way to create beautiful pages for all of your projects. Author your page content here using GitHub Flavored Markdown, select a template crafted by a designer, and publish. After your page is generated, you can check out the new branch:</p>
+<p>The library generates components based on data description.</p>
 
-<pre><code>$ cd your_repo_root/repo_name
-$ git fetch origin
-$ git checkout gh-pages
+<p>The library uses <a href="https://github.com/Prismatic/schema">Prismatic/Schema</a> to describe the data.</p>
+
+<p>Using Schema allows the :</p>
+
+<ul>
+<li>Validation of the data ;</li>
+<li>Coercion of String to proper types.</li>
+</ul><h2>
+<a name="show-me-what-looks-like-" class="anchor" href="#show-me-what-looks-like-"><span class="octicon octicon-link"></span></a>Show me what looks like !</h2>
+
+<p><a href="https://rawgit.com/hiram-madelaine/om-inputs/master/release.html#">See it in action</a></p>
+
+<p>The project contains the example that is used in the documentation</p>
+
+<p>Just clone the repo and run :</p>
+
+<p><code>lein cljsbuild auto</code></p>
+
+<p><code>open index.html</code></p>
+
+<h2>
+<a name="how-does-it-work" class="anchor" href="#how-does-it-work"><span class="octicon octicon-link"></span></a>How does it work</h2>
+
+<h3>
+<a name="anatomy-of-a-component" class="anchor" href="#anatomy-of-a-component"><span class="octicon octicon-link"></span></a>Anatomy of a component</h3>
+
+<p>To build a component we need :</p>
+
+<ul>
+<li>A name ;</li>
+<li>A description of the fields ;</li>
+<li>A callback function to use the data ;</li>
+<li>Options to customize the component.</li>
+</ul><h4>
+<a name="the-component-name" class="anchor" href="#the-component-name"><span class="octicon octicon-link"></span></a>The component name</h4>
+
+<p>The name is used :</p>
+
+<ul>
+<li>as the React.js display name;</li>
+<li>To differentiate components in the UI.</li>
+</ul><h4>
+<a name="description-of-the-fields" class="anchor" href="#description-of-the-fields"><span class="octicon octicon-link"></span></a>Description of the fields</h4>
+
+<p>The fields of a component are described with Schema :</p>
+
+<h5>
+<a name="supported-schema-types" class="anchor" href="#supported-schema-types"><span class="octicon octicon-link"></span></a>Supported Schema types</h5>
+
+<ul>
+<li>s/Str</li>
+<li>s/Int</li>
+<li>s/Inst</li>
+<li>s/enum</li>
+<li>s/Bool</li>
+</ul><p>A value can be nil using s/maybe :</p>
+
+<pre><code>{:person/first-name (s/maybe s/Str)}
+
 </code></pre>
 
-<p>If you're using the GitHub for Mac, simply sync your repository and you'll see the new branch.</p>
+<p>A key can be optional using s/s/optional-key :</p>
+
+<pre><code> {(s/optional-key :person/size) s/Num}
+</code></pre>
+
+<h5>
+<a name="example" class="anchor" href="#example"><span class="octicon octicon-link"></span></a>Example</h5>
+
+<pre><code>(def sch-person {:person/first-name s/Str
+                 :person/name s/Str
+                 (s/optional-key :person/birthdate) s/Inst
+                 (s/optional-key :person/size) s/Int
+                 (s/optional-key :person/gender) (s/enum "M" "Ms")})
+</code></pre>
+
+<h4>
+<a name="the-calback-function" class="anchor" href="#the-calback-function"><span class="octicon octicon-link"></span></a>The calback function</h4>
+
+<p>The callback function takes the cursor app state, the owner and the entity.</p>
+
+<p><code>(fn [app owner entity])</code></p>
 
 <h3>
-<a name="designer-templates" class="anchor" href="#designer-templates"><span class="octicon octicon-link"></span></a>Designer Templates</h3>
+<a name="build-an-om-input-component" class="anchor" href="#build-an-om-input-component"><span class="octicon octicon-link"></span></a>Build an Om input component</h3>
 
-<p>We've crafted some handsome templates for you to use. Go ahead and continue to layouts to browse through them. You can easily go back to edit your page before publishing. After publishing your page, you can revisit the page generator and switch to another theme. Your Page content will be preserved if it remained markdown format.</p>
+<p>To build an Om input component, just call the function <code>make-input-comp</code> with the required parameters :</p>
+
+<ul>
+<li>A keyword for the component name</li>
+<li>A Prismatic/Schema</li>
+<li>a callback function</li>
+</ul><p>In this example we build the component :create-person with the Schema seen previously and the callback simply diplay the created map :</p>
+
+<pre><code>(def person-input-view (make-input-comp :create-person sch-person #(js/alert %3)))
+</code></pre>
 
 <h3>
-<a name="rather-drive-stick" class="anchor" href="#rather-drive-stick"><span class="octicon octicon-link"></span></a>Rather Drive Stick?</h3>
+<a name="translation-of-the-schema-into-ui" class="anchor" href="#translation-of-the-schema-into-ui"><span class="octicon octicon-link"></span></a>Translation of the Schema into UI.</h3>
 
-<p>If you prefer to not use the automatic generator, push a branch named <code>gh-pages</code> to your repository to create a page manually. In addition to supporting regular HTML content, GitHub Pages support Jekyll, a simple, blog aware static site generator written by our own Tom Preston-Werner. Jekyll makes it easy to create site-wide headers and footers without having to copy them across every page. It also offers intelligent blog support and other advanced templating features.</p>
+<h4>
+<a name="the-form-inputs" class="anchor" href="#the-form-inputs"><span class="octicon octicon-link"></span></a>The form inputs</h4>
 
-<h3>
-<a name="authors-and-contributors" class="anchor" href="#authors-and-contributors"><span class="octicon octicon-link"></span></a>Authors and Contributors</h3>
+<p>Each entry of a schema generate a field in the form.</p>
 
-<p>You can <a href="https://github.com/blog/821" class="user-mention">@mention</a> a GitHub username to generate a link to their profile. The resulting <code>&lt;a&gt;</code> element will link to the contributor's GitHub Profile. For example: In 2007, Chris Wanstrath (<a href="https://github.com/defunkt" class="user-mention">@defunkt</a>), PJ Hyett (<a href="https://github.com/pjhyett" class="user-mention">@pjhyett</a>), and Tom Preston-Werner (<a href="https://github.com/mojombo" class="user-mention">@mojombo</a>) founded GitHub.</p>
+<p>Hence, the example schema will produce a form with these input fields :</p>
 
-<h3>
-<a name="support-or-contact" class="anchor" href="#support-or-contact"><span class="octicon octicon-link"></span></a>Support or Contact</h3>
+<ul>
+<li>A mandatory input of type text for :person/first-name ;</li>
+<li>A mandatory input of type text for :person/name ;</li>
+<li>An optional date input for the :person/birthdate ;</li>
+<li>An optional input that allows only Integer for :person/size ;</li>
+<li>An optional select that that present the choices "M" and "Ms" ;</li>
+<li>A validation button that trigger the callback.</li>
+</ul><h4>
+<a name="fields-validation" class="anchor" href="#fields-validation"><span class="octicon octicon-link"></span></a>Fields validation</h4>
 
-<p>Having trouble with Pages? Check out the documentation at <a href="http://help.github.com/pages">http://help.github.com/pages</a> or contact <a href="mailto:support@github.com">support@github.com</a> and we’ll help you sort it out.</p>
+<p>There are two type of validations :</p>
+
+<ol>
+<li> Schema validation</li>
+<li> Verily validation</li>
+</ol><h5>
+<a name="schema-validation" class="anchor" href="#schema-validation"><span class="octicon octicon-link"></span></a>Schema Validation</h5>
+
+<p>Schema is able to check that a data structure is conform :</p>
+
+<p>In case of a map :</p>
+
+<ul>
+<li>all required keys are present ;</li>
+<li>All values are of the correct type ;</li>
+</ul><p>This job is done by Schema/Coercion :
+When a value is not of the declared type, we have a chance to coerce it in the correct type.</p>
+
+<p>The problem with an HTMl form is that all data are strings.</p>
+
+<ul>
+<li>An empty string represents nil</li>
+<li>Other types must be coerced to the correct type : s/Num, s/Int, s/Inst</li>
+</ul><h5>
+<a name="when-validations-occur-" class="anchor" href="#when-validations-occur-"><span class="octicon octicon-link"></span></a>When validations occur ?</h5>
+
+<h6>
+<a name="inline-validation" class="anchor" href="#inline-validation"><span class="octicon octicon-link"></span></a>Inline validation</h6>
+
+<p>Each field is validated when leaving the input.</p>
+
+<p>If the field is required and left empty the field is maked invalid and a tooltip is displayed.</p>
+
+<h6>
+<a name="submission-validation" class="anchor" href="#submission-validation"><span class="octicon octicon-link"></span></a>Submission validation</h6>
+
+<p>When clicking the action button, the form is validated according to the Schema :</p>
+
+<ul>
+<li>A required input must have a non blank value ;</li>
+<li>A coercion appends if needed for type different than s/Str</li>
+</ul><h4>
+<a name="options" class="anchor" href="#options"><span class="octicon octicon-link"></span></a>Options</h4>
+
+<p>Options are a mean to override the default behavior of the library.</p>
+
+<p>All options are given in a map.</p>
+
+<h5>
+<a name="order-of-fields" class="anchor" href="#order-of-fields"><span class="octicon octicon-link"></span></a>Order of fields</h5>
+
+<p>The schema is a map that can't be ordered so the fields are displayed in a random order.</p>
+
+<p>You can define the total ordering by giving a vector :</p>
+
+<pre><code>(def opts {:order [:person/first-name :person/name :person/gender :person/birthdate :person/size :person/married]})
+
+</code></pre>
+
+<h5>
+<a name="change-the-rendering-implementation-may-change" class="anchor" href="#change-the-rendering-implementation-may-change"><span class="octicon octicon-link"></span></a>Change the rendering (implementation may change)</h5>
+
+<p>For example, concerning the enum schema, it is possible to choose between a
+select or a group of radio buttons.</p>
+
+<pre><code>(def opts {:person/gender {:type "radio-group"}})
+
+</code></pre>
+
+<h5>
+<a name="more-complex-validation-rules" class="anchor" href="#more-complex-validation-rules"><span class="octicon octicon-link"></span></a>More Complex Validation rules</h5>
+
+<p>It is possible to add more complex validation rules than the one provided by Schema.</p>
+
+<p>I chose <a href="https://github.com/jkk/verily">Verily</a> for the following reasons :</p>
+
+<ul>
+<li>the rules can be described as data structure</li>
+<li>the rules are expressed on the whole map not by key.</li>
+<li>It works for Clojure and ClojureScript.</li>
+</ul><p>My goal is to be able to plug any other validation framework.</p>
+
+<h6>
+<a name="add-validations-rules" class="anchor" href="#add-validations-rules"><span class="octicon octicon-link"></span></a>Add validations rules</h6>
+
+<pre><code>(def opts {:validations [[:min-val 100 :person/size :person-size-min-length]
+                         [:email :person/email :bad-email]]})
+</code></pre>
+
+<h5>
+<a name="initial-value-not-implemented-yet" class="anchor" href="#initial-value-not-implemented-yet"><span class="octicon octicon-link"></span></a>Initial value (not implemented yet)</h5>
+
+<p>It should be possible to have initial values for each field.</p>
+
+<pre><code>(def opts {:init {:person/married true}})
+
+</code></pre>
+
+<p>The initial data could be retrieved from the cursor app-state.</p>
+
+<h4>
+<a name="i18n" class="anchor" href="#i18n"><span class="octicon octicon-link"></span></a>i18n</h4>
+
+<p>It is possible to provide the labels and error messages in multiple languages.
+Just put a map in the shared data :</p>
+
+<pre><code>(om/root
+ app-view
+ app-state
+ {:target (. js/document (getElementById "person"))
+  :shared {:i18n {"en" {:language {:action "Change language"
+                                   :lang {:label "Language"
+                                          :data {"en" "English"
+                                                 "fr" "French"}}}
+                        :create-person {:action "Create person"
+                                        :person/name {:label "Name"}
+                                        :person/birthdate {:label "Birthday"}
+                                        :person/first-name {:label "Firstname"}
+                                        :person/size {:label "Size"}
+                                        :person/gender {:label "Gender"
+                                                        :data {"M" "Mister"
+                                                               "Ms" "Miss"}}}}
+                  "fr" {:language {:action "Choix de la langue"
+                                   :lang {:label "Langue"
+                                          :data {"en" "Anglais"
+                                                 "fr" "Français"}}}
+                        :create-person {:action "Créer personne"
+                                       :person/name {:label "Nom"}
+                                       :person/first-name {:label "Prénom"}
+                                       :person/birthdate {:label "Date de naissance"}
+                                       :person/size {:label "Taille"}
+                                       :person/gender {:label "Genre"
+                                                       :data {"M" "Monsieur"
+                                                              "Ms" "Madame"}}}}}}})
+
+</code></pre>
       </section>
     </div>
 
