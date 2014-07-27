@@ -115,7 +115,7 @@
 (def validation-coercer
   (merge coerce/+string-coercions+ {s/Str empty-string-coercer
                                     (s/maybe s/Str) empty-string-coercer
-                                    s/Inst parse-date}))
+                                    s/Inst #(d/parse (d/fmt FULL-DATE %))}))
 
  (defn only-integer
    "Only authorize integer or empty string.
@@ -202,12 +202,11 @@
                          (get-in data [code :label] (if (keyword? code) (name code) code)))) (:vs t))))
 
 
-#_(defmethod magic-input js/Date
+(defmethod magic-input js/Date
  [{:keys [attrs]}]
   (let [date-in (d/fmt FULL-DATE (:value attrs))]
    (dom/input (clj->js (merge attrs
-                              {:type "date"
-                               :value date-in})))))
+                              {:value date-in})))))
 
 (defmethod magic-input js/Boolean
   [{:keys [k attrs chan]}]
@@ -461,18 +460,21 @@
 
 (s/defn ^:always-validate  build-init-state :- sch-business-state
   "Build the initial business local state backing the inputs in the form."
-  [sch]
-  (into {} (for [[k t] sch
-                 :let [fk (get k :k k)]]
-             [fk {:value ""
-                  :required (required? k)
-                  :type (sch-type t)}])))
+  ([sch
+    opts]
+   (into {} (for [[k t] sch
+                  :let [fk (get k :k k)]]
+              [fk {:value (get-in opts [fk :init] "")
+                   :required (required? k)
+                   :type (sch-type t)}])))
+  ([sch]
+   (build-init-state sch {})))
 
 
 (defn add-date-picker!
   [k node chan f]
   (let [dp (d/date-picker f)]
-    (goog.events/listen dp goog.ui.DatePicker.Events.CHANGE #(put! chan [k (d/fmt f (.-date %))]))
+    (goog.events/listen dp goog.ui.DatePicker.Events.CHANGE #(put! chan [k  (.-date %)]))
     (.decorate dp node )))
 
 
@@ -515,7 +517,7 @@
          (init-state
           [_]
           {:chan (chan)
-           :inputs (build-init-state schema)
+           :inputs (build-init-state schema opts)
            :coercers (build-coercer schema)
            :unit-coercers unit-coercers})
          om/IWillMount
