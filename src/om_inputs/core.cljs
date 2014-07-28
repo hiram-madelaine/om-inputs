@@ -8,6 +8,7 @@
             [schema.core :as s]
             [schema.coerce :as coerce]
             [clojure.string :as str]
+            [om-inputs.utils :refer [full-name]]
             [om-inputs.date-utils :as d]
             [om-inputs.schema-utils :as su :refer [sch-type]]
             [om-inputs.schemas :refer [sch-business-state sch-i18n sch-field-state SchOptions]]
@@ -18,19 +19,6 @@
             [goog.events]))
 
 (enable-console-print!)
-
-;_________________________________________________
-;                                                 |
-;          Clojure Utils                          |
-;_________________________________________________|
-
-
-(s/defn full-name :- s/Str
-  "Get the namespace of a keyword"
-  [k :- s/Keyword]
-  (if (namespace k)
-   (str/join "/" ((juxt namespace name) k))
-   (name k)))
 
 
 ;_________________________________________________
@@ -72,14 +60,15 @@
 (defmethod magic-input "radio-group"
   [{:keys [k t data attrs chan]}]
   (apply dom/div #js {:className "input-group"}
-         (map (fn [code]
-                (dom/div #js {:className "radio"}
-                         (dom/input #js {:type "radio"
-                                         :id (full-name k)
-                                         :name (full-name k)
-                                         :value code
-                                         :onClick #(put! chan [k code])})
-                         (get-in data [code :label] (if (keyword? code) (full-name code) code)))) (:vs t))))
+           (map (fn [code]
+                  (dom/div #js {:className "radio"}
+                           (dom/input  (clj->js (merge attrs {:type "radio"
+                                                              :className ""
+                                                              :id (full-name k)
+                                                              :name (full-name k)
+                                                              :value code
+                                                              :onClick #(put! chan [k code])} )))
+                           (get-in data [code :label] (if (keyword? code) (full-name code) code)))) (:vs t))))
 
 
 (defmethod magic-input js/Date
@@ -235,7 +224,7 @@
   The map of inputs is expected in state under the key :inputs
   The channel is expected in state under key :chan
   The i18n fn is expected in shared under key :i18n"
-  ([owner k i18n t]
+  ([owner k t i18n ]
    (build-input owner k t i18n {}))
   ([owner k t i18n opts]
    (let [{:keys [chan inputs lang]} (om/get-state owner)

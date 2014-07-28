@@ -2,7 +2,8 @@
   "Handle all the aspectd related to the i18n of the components."
   (:require  [schema.core :as s]
              [clojure.string :as str]
-             [om.core :as om :include-macros true]))
+             [om.core :as om :include-macros true]
+             [om-inputs.utils :refer [full-name]]))
 
 
 
@@ -65,9 +66,14 @@
 (defn desc?
   [i18n k]
   (not (nil? (desc i18n k))))
+
 (defn data
-  [i18n k]
-  (get-in i18n [k data]))
+  [i18n
+   k]
+  (get-in i18n [k :data]))
+
+(defn enum-label [data code]
+  (get-in data [code :label] (if (keyword? code) (full-name code) code)))
 
 
 
