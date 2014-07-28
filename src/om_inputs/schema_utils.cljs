@@ -20,3 +20,20 @@
 
 (defn get-sch [sch k]
   (get sch k (k (norm-sch sch))))
+
+
+
+(defn sch-type [t]
+  "This function tries to determine the leaf Schema.
+   s/Str, s/Int are inclosed in Predicate
+   s/Inst is represented "
+  (condp = (type t)
+    schema.core.Predicate (:p? t)
+    schema.core.Maybe (sch-type (:schema t))
+    schema.core.NamedSchema (sch-type (:schema t))
+    schema.core.EnumSchema "enum"
+    js/Function t
+    "other"))
+
+
+
