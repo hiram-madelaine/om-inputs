@@ -19,6 +19,20 @@
 
 ;_________________________________________________
 ;                                                 |
+;          Clojure Utils                          |
+;_________________________________________________|
+
+
+(s/defn full-name :- s/Str
+  "Get the namespace of a keyword"
+  [k :- s/Keyword]
+  (if (namespace k)
+   (str/join "/" ((juxt namespace name) k))
+   (name k)))
+
+
+;_________________________________________________
+;                                                 |
 ;          Schemas                                |
 ;_________________________________________________|
 
@@ -44,7 +58,11 @@
 (def sch-state (merge sch-inputs sch-chan {s/Any s/Any}))
 
 
-
+(def SchOptions
+  {(s/optional-key :order) [s/Keyword]
+   (s/optional-key :init) {s/Keyword s/Any}
+   (s/optional-key :validations) s/Any
+   s/Keyword {:type s/Str}})
 
 ;_________________________________________________
 ;                                                 |
@@ -186,7 +204,7 @@
   (apply dom/select (clj->js attrs)
          (dom/option #js {:value ""} "")
          (map (fn [code]
-                (dom/option #js {:value code} (get-in data [code :label] (if (keyword? code) (name code) code)))) (:vs t))))
+                (dom/option #js {:value code} (get-in data [code :label] (if (keyword? code) (full-name code) code)))) (:vs t))))
 
 
 (defmethod magic-input "radio-group"
@@ -195,11 +213,11 @@
          (map (fn [code]
                 (dom/div #js {:className "radio"}
                          (dom/input #js {:type "radio"
-                                         :id (name k)
-                                         :name (name k)
+                                         :id (full-name k)
+                                         :name (full-name k)
                                          :value code
                                          :onClick #(put! chan [k code])})
-                         (get-in data [code :label] (if (keyword? code) (name code) code)))) (:vs t))))
+                         (get-in data [code :label] (if (keyword? code) (full-name code) code)))) (:vs t))))
 
 
 (defmethod magic-input js/Date
@@ -382,7 +400,7 @@
     (did-mount [this]
                (let [tool (om/get-node owner (str (:k m) "-tooltip"))
                      _ (count (.-textContent tool))
-                     elem (.getElementById js/document (name (:k m)))
+                     elem (.getElementById js/document (full-name (:k m)))
                      e (.getBoundingClientRect elem)]
                  (set! (.-left (.-style tool)) (str (.-width e) "px"))))
     om/IRenderState
@@ -433,15 +451,15 @@
          [err-k & errs] (when error (get-in inputs [k :error]))
          valid (when (get-in inputs [k :valid]) "has-success")
          required (if (get-in inputs [k :required]) "required" "optional")
-         attrs {:id (name k)
-                :ref (name k)
+         attrs {:id (full-name k)
+                :ref (full-name k)
                 :className "form-control"
                 :value value
                 :onBlur #(put! chan [:validate k])
                 :onChange #(put! chan [k (e-value %)]) }]
      (dom/div #js {:className (styles "form-group" error valid)}
 
-              (dom/label #js {:htmlFor (name k)
+              (dom/label #js {:htmlFor (full-name k)
                               :className (styles "control-label" required)}
                          (label i18n k))
               (when (desc? i18n k) (dom/div #js {:className "description"} (desc i18n k)))
@@ -464,7 +482,7 @@
     opts]
    (into {} (for [[k t] sch
                   :let [fk (get k :k k)]]
-              [fk {:value (get-in opts [fk :init] "")
+              [fk {:value (get-in opts [:init fk] "")
                    :required (required? k)
                    :type (sch-type t)}])))
   ([sch]
@@ -487,20 +505,20 @@
                          :when (= s/Inst type)]
                      k)]
     (doseq [k date-fieds]
-      (add-date-picker! k (om/get-node owner (name k)) chan f))))
+      (add-date-picker! k (om/get-node owner (full-name k)) chan f))))
 
 
 
-(s/defn make-input-comp
+(s/defn ^:always-validate make-input-comp
   "Build an input form Om component based on a prismatic/Schema"
   ([comp-name
     schema
     action]
    (make-input-comp comp-name schema action {}))
-  ([comp-name
+  ([comp-name :- s/Keyword
     schema
     action
-    opts]
+    opts :- SchOptions]
    (let [order (:order opts)
          schema-coercer (coerce/coercer schema validation-coercer)
          validators (:validations opts)
@@ -512,7 +530,7 @@
          om/IDisplayName
          (display-name
           [_]
-          (name comp-name))
+          (full-name comp-name))
          om/IInitState
          (init-state
           [_]
