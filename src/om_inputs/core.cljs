@@ -8,7 +8,6 @@
             [schema.core :as s]
             [schema.coerce :as coerce]
             [clojure.string :as str]
-            [clojure.set :as st]
             [om-inputs.date-utils :as d]
             [om-inputs.schema-utils :as su :refer [sch-type]]
             [om-inputs.schemas :refer [sch-business-state sch-i18n sch-field-state SchOptions]]
@@ -138,7 +137,8 @@
              true))
 
 (s/defn ^:always-validate  build-init-state :- sch-business-state
-  "Build the initial business local state backing the inputs in the form."
+  "Build the initial business local state backing the inputs in the form.
+   It accepts init values from the options"
   ([sch
     opts]
    (into {} (for [[k t] sch
@@ -151,6 +151,7 @@
 
 
 (defn add-date-picker!
+  "Decorate an HTML node with google.ui.inputdatepicker"
   [k node chan f]
   (let [dp (d/date-picker f)]
     (goog.events/listen dp goog.ui.DatePicker.Events.CHANGE #(put! chan [k  (.-date %)]))
@@ -172,7 +173,7 @@
 
 ;___________________________________________________________
 ;                                                           |
-;          Component builders                               |
+;                 Om/React Sub-Components                   |
 ;___________________________________________________________|
 
 
@@ -222,11 +223,20 @@
 
 
 
+;___________________________________________________________
+;                                                           |
+;                 Om/React Form Component Builders          |
+;___________________________________________________________|
+
+
+
 (defn build-input
   "Handle the display of an input from state and push change on a channel.
   The map of inputs is expected in state under the key :inputs
   The channel is expected in state under key :chan
   The i18n fn is expected in shared under key :i18n"
+  ([owner k i18n t]
+   (build-input owner k t i18n {}))
   ([owner k t i18n opts]
    (let [{:keys [chan inputs lang]} (om/get-state owner)
          full-i18n (om/get-shared owner [:i18n lang])
@@ -254,9 +264,7 @@
                          (when (and error mess)
                            (om/build tooltip (om/get-props owner) {:opts {:k k}
                                                                    :state {:mess mess}
-                                                                   :init-state {:chan chan}})))))))
-  ([owner k i18n t]
-   (build-input owner k t i18n {})))
+                                                                   :init-state {:chan chan}}))))))))
 
 
 (s/defn ^:always-validate make-input-comp
