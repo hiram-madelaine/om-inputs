@@ -32,23 +32,7 @@
   "Describe the Scheam errors data structure"
   {s/Keyword s/Any})
 
-;_________________________________________________
-;                                                 |
-;          Date Utils                             |
-;_________________________________________________|
 
-
-
- #_(def FULL-DATE "yyyy-MM-dd")
-
- (def FULL-DATE "dd/MM/yyyy")
-
- (defn parse-date
-   ([n o]
-    (when-not (str/blank? n)
-     (d/parse FULL-DATE n)))
-   ([n]
-    (parse-date n nil)))
 
 ;___________________________________________________________
 ;                                                           |
@@ -61,11 +45,18 @@
   [s]
   (if (str/blank? s) nil s))
 
+(defn inst-coercer
+  [s]
+  (when-not (str/blank? s)
+    (d/parse (d/fmt d/default-fmt s))))
+
 
 (def validation-coercer
   (merge coerce/+string-coercions+ {s/Str empty-string-coercer
                                     (s/maybe s/Str) empty-string-coercer
-                                    s/Inst #(d/parse (d/fmt FULL-DATE %))}))
+                                    s/Inst inst-coercer}))
+
+
 
 
 

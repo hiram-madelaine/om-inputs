@@ -12,7 +12,7 @@
             [om-inputs.date-utils :as d]
             [om-inputs.schema-utils :as su :refer [sch-type]]
             [om-inputs.schemas :refer [sch-business-state sch-i18n sch-field-state SchOptions]]
-            [om-inputs.validation :as va :refer [FULL-DATE parse-date]]
+            [om-inputs.validation :as va]
             [om-inputs.i18n :refer [comp-i18n label desc desc? data]]
             [om-inputs.typing-controls :refer [build-typing-control]]
             [jkkramer.verily :as v]
@@ -72,10 +72,12 @@
 
 
 (defmethod magic-input js/Date
- [{:keys [attrs]}]
-  (let [date-in (d/fmt FULL-DATE (:value attrs))]
-   (dom/input (clj->js (merge attrs
-                              {:value date-in})))))
+  [{:keys [k attrs]}]
+  (let [v (:value attrs)
+        date-in (d/display-date v)]
+    (dom/input (clj->js (merge attrs
+                               {:value date-in})))))
+
 
 (defmethod magic-input js/Boolean
   [{:keys [k attrs chan]}]
@@ -132,19 +134,23 @@
     opts]
    (into {} (for [[k t] sch
                   :let [fk (get k :k k)]]
-              [fk {:value (get-in opts [:init fk] "")
+              [fk {:value (get-in opts [:init fk])
                    :required (required? k)
                    :type (sch-type t)}])))
   ([sch]
    (build-init-state sch {})))
 
 
+
+
 (defn add-date-picker!
   "Decorate an HTML node with google.ui.inputdatepicker"
   [k node chan f]
   (let [dp (d/date-picker f)]
-    (goog.events/listen dp goog.ui.DatePicker.Events.CHANGE #(put! chan [k  (.-date %)]))
-    (.decorate dp node )))
+    (.decorate dp node )
+    (goog.events/listen dp goog.ui.DatePicker.Events.CHANGE #(do
+                                                              (put! chan [k  (d/goog-date->js-date (.-date %))])
+                                                              (put! chan [:validate k])))))
 
 
 
@@ -308,7 +314,7 @@
                (recur)))))
          om/IDidMount
          (did-mount [this]
-                    (handle-date-fields! owner FULL-DATE))
+                    (handle-date-fields! owner d/default-fmt))
          om/IWillUpdate
          (will-update
           [this props state])

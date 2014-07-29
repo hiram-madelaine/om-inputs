@@ -1,4 +1,5 @@
 (ns om-inputs.date-utils
+  (:require [clojure.string :as str])
   (:import [goog.i18n DateTimeFormat DateTimeParse]
            [goog.ui InputDatePicker]))
 
@@ -46,6 +47,20 @@
      d))
   ([s]
    (parse default-fmt s)))
+
+
+
+(defn display-date
+  "Takes care of date rendering in the input."
+  [v]
+  (when-not (str/blank? v) (fmt default-fmt v)))
+
+
+(defn goog-date->js-date
+  [d]
+  (when d
+    (parse (fmt default-fmt d))))
+
 
 (defprotocol SetDate
   (setInputValue [this v]))
