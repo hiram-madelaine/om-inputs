@@ -334,10 +334,11 @@
                                                     (build-input owner k (su/get-sch schema k) labels opts)) order)
                                              (map (fn [[k t]]
                                                     (build-input owner (get k :k k) t labels opts)) schema)))
-                               (dom/input #js {:type  "button"
+                               (dom/div #js {:className "panel-button"}
+                                        (dom/input #js {:type  "button"
                                                :className "btn btn-primary"
                                                :value (label labels :action )
-                                               :onClick #(put! chan [:create inputs])})
+                                               :onClick #(put! chan [:create inputs])}))
                                (dom/div #js {:className "description"} (desc labels :action)))))))))))
 
 
