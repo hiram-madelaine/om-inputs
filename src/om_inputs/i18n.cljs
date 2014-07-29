@@ -41,12 +41,46 @@
     (s/optional-key :action) sch-i18n-field-labels} sch))
 
 
+(defn browser-lang
+  "Try to determine the language of the browser"
+  []
+  (when-let [b-lang (or (.-userLanguage js/navigator)
+                        (.-browserLanguage js/navigator)
+                        (.-language js/navigator))]
+    (.substr b-lang 0 2)))
+
+
+(def I18NSchema {s/Str
+                 (merge sch-i18n-errors
+                        {s/Keyword
+                         (merge
+                          {s/Keyword sch-i18n-field}
+                          {(s/optional-key :title) s/Str
+                           (s/optional-key :action) sch-i18n-field-labels}) })})
+
+
+
+(defn i18n-comp-lang
+  "If i18n is provided then determine the language in this order from
+  the state
+  the browser
+  the first language available"
+  [sch comp-name lang full-i18n]
+  (let [langs (keys full-i18n)
+        language (or (some #{lang} langs)
+                 (some #{(browser-lang)} langs)
+                 (first langs))]
+    (when (not= lang language) (prn (str "Warning - Check your i18n language configuration; you set : " lang " but found no labels. Switching to : " language)))
+    (s/validate (build-i18n-schema sch) (get-in full-i18n [language comp-name]))))
+
 (defn comp-i18n
   "Get the specific i18n labels for the component and the language"
   [owner comp-name sch]
   (let [full-i18n (om/get-shared owner :i18n)
         lang (om/get-state owner :lang)]
-    (s/validate (build-i18n-schema sch) (get-in full-i18n [lang comp-name]))))
+    (when full-i18n
+      (s/validate I18NSchema full-i18n)
+      (i18n-comp-lang sch comp-name lang full-i18n))))
 
 
 
