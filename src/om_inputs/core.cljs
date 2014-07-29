@@ -134,7 +134,7 @@
     opts]
    (into {} (for [[k t] sch
                   :let [fk (get k :k k)]]
-              [fk {:value (get-in opts [:init fk])
+              [fk {:value (get-in opts [:init fk] "")
                    :required (required? k)
                    :type (sch-type t)}])))
   ([sch]
