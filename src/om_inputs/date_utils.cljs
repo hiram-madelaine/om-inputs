@@ -32,9 +32,11 @@
 (defn fmt
   "Format a date using either the built-in goog.i18n.DateTimeFormat.Format enum
    or a formatting string like \"dd MMMM yyyy\""
-  [date-format date]
-  (.format (DateTimeFormat. (or (format-map date-format) date-format))
-    (js/Date. date)))
+  ([date]
+   (fmt default-fmt date))
+  ([date-format date]
+   (.format (DateTimeFormat. (or (format-map date-format) date-format))
+            (js/Date. date))))
 
 
 (defn parse
