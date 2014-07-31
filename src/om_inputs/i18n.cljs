@@ -73,6 +73,12 @@
     (when (not= lang language) (prn (str "Warning - Check your i18n language configuration; you set : " lang " but found no labels. Switching to : " language)))
     (s/validate (build-i18n-schema sch) (get-in full-i18n [language comp-name]))))
 
+
+
+(def i18n-comp-lang-memo
+  "Optimisation and as a side effect the warning is printed only once"
+  (memoize i18n-comp-lang))
+
 (defn comp-i18n
   "Get the specific i18n labels for the component and the language"
   [owner comp-name sch]
@@ -80,7 +86,7 @@
         lang (om/get-state owner :lang)]
     (when full-i18n
       (s/validate I18NSchema full-i18n)
-      (i18n-comp-lang sch comp-name lang full-i18n))))
+      (i18n-comp-lang-memo sch comp-name lang full-i18n))))
 
 
 
