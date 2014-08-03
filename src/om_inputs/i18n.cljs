@@ -1,11 +1,10 @@
 (ns om-inputs.i18n
   "Handle all the aspectd related to the i18n of the components."
+  (:require-macros [schema.macros :as s])
   (:require  [schema.core :as s]
              [clojure.string :as str]
              [om.core :as om :include-macros true]
              [om-inputs.utils :refer [full-name]]))
-
-
 
 ;_________________________________________________
 ;                                                 |
@@ -115,5 +114,8 @@
 (defn enum-label [data code]
   (get-in data [code :label] (if (keyword? code) (full-name code) code)))
 
-
+(s/defn error
+  [full-i18n :- I18NSchema
+   k :- s/Keyword]
+  (get-in full-i18n [:errors k]))
 

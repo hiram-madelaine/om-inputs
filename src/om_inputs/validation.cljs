@@ -36,7 +36,7 @@
 
 ;___________________________________________________________
 ;                                                           |
-;          Validation handlers                              |
+;          Coercers                                         |
 ;___________________________________________________________|
 
 
@@ -57,6 +57,10 @@
                                     s/Inst inst-coercer}))
 
 
+;___________________________________________________________
+;                                                           |
+;          Validation handlers                              |
+;___________________________________________________________|
 
 
 
@@ -92,41 +96,19 @@
            {k [msg]}))))
 
 
-(s/defn ^:always-validate validate? :- s/Bool
-  [s :- sch-field-state]
-  (let [{:keys [required value]} s]
-   (or required
-      (not (str/blank? value)))))
+(defn build-verily-validator
+  [rules]
+  (partial validate (v/validations->fn rules) transform-verily-errors ))
+
+(defn build-schema-validator
+  [schema]
+  (let []))
 
 
-(s/defn ^:always-validate add-field-error :- sch-business-state
-  "Handle errors for a single field"
-  [state :- sch-business-state
-   errs :- sch-errors]
-  (reduce (fn [s e]
-            (-> s
-                (assoc-in [e :valid] false)
-                (assoc-in [e :error] (e errs)))) state (keys errs)))
-
-(s/defn ^:always-validate remove-field-error :- sch-business-state
-  [state :- sch-business-state
-   k :- s/Keyword]
-  (-> state
-      (assoc-in [k :valid] true)
-      (update-in [k] dissoc :error)))
-
-
-(defn field-validation!
-  "Validate a single field of the local business state"
-  [owner f coercers]
-  (let [business-state (om/get-state owner :inputs)
-        field-state (f business-state)]
-    (when (validate? field-state)
-      (om/set-state! owner [:inputs]
-                     (if-let [errs ((f coercers)  {f (:value field-state)})]
-                       (add-field-error business-state errs)
-                       (remove-field-error business-state f))))))
-
+;___________________________________________________________
+;                                                           |
+;          Complete Validation                              |
+;___________________________________________________________|
 
 
 (s/defn ^:always-validate  handle-errors :- sch-business-state
@@ -146,29 +128,169 @@
                (update-in [e] dissoc :error))) state valid-ks)))
 
 
-(s/defn ^:always-validate pre-validation :- {s/Keyword s/Any}
-  "Create the map that will be validated by the Schema :
-   Only keeps :
-   - required keys
-   - optional keys with non blank values"
-  [v :- sch-business-state]
-  (into {} (for [[k m] v
+(s/defn keep-fields-to-validate :- sch-business-state
+  [bs :- sch-business-state]
+  (into {} (for [[k m] bs
                  :let [in (:value m)
                        req (:required m)]
                  :when (or req (not (str/blank? in)))]
-             {k (:value m)} )))
+             {k m} )))
 
 
 
-(s/defn ^:always-validate sch-glo->unit :- {s/Keyword s/Any}
+(s/defn ^:always-validate
+  pre-validation :- {s/Keyword s/Any}
+  "Create the map that will be validated by the Schema :
+  Only keeps :
+  - required keys
+  - optional keys with non blank values"
+  [bs :- sch-business-state]
+  (let [vbs  (keep-fields-to-validate bs)]
+    (into {}(for [[k m] vbs]
+              {k (:value m)}))))
+
+
+(s/defn ^:always-validate
+  sch-glo->unit :- {s/Keyword s/Any}
   "Transform a Schema into a map of key -> individual Schema"
   [sch ]
   (into {} (for [ [k t] sch]
     {(get k :k k) {k t}})))
 
 
-(s/defn ^:always-validate unit->coercer :- {s/Keyword s/Any}
+(defn build-unit-coercers
+  "Build the map of field -> coercer"
   [sch]
   (apply merge (for [[k s] (sch-glo->unit sch)]
-                 {k (partial validate (coerce/coercer s validation-coercer) transform-schema-errors)})))
+                 {k (coerce/coercer s validation-coercer)})))
 
+(s/defn ^:always-validate
+  unit-schema-validators :- {s/Keyword s/Any}
+  [unit-coercers :- {s/Keyword s/Any}]
+  (apply merge (for [[k c] unit-coercers]
+                 {k (partial validate c transform-schema-errors)})))
+
+;___________________________________________________________
+;                                                           |
+;          Unit Validation                                  |
+;___________________________________________________________|
+
+
+(s/defn ^:always-validate
+  validate? :- s/Bool
+  [s :- sch-field-state]
+  (let [{:keys [required value]} s]
+   (or required
+      (not (str/blank? value)))))
+
+
+(s/defn ^:always-validate
+  add-field-error :- sch-business-state
+  "Handle errors for a single field"
+  [state :- sch-business-state
+   errs :- sch-errors]
+  (reduce (fn [s e]
+            (-> s
+                (assoc-in [e :valid] false)
+                (assoc-in [e :error] (e errs)))) state (keys errs)))
+
+(s/defn ^:always-validate
+  remove-field-error :- sch-business-state
+  [state :- sch-business-state
+   k :- s/Keyword]
+  (-> state
+      (assoc-in [k :valid] true)
+      (update-in [k] dissoc :error)))
+
+(defn unit-verily-validation
+  "validate a single field against verily rules"
+  [fk unit unit-coercers  verily-validator]
+  (let [coerced ((fk unit-coercers) unit)
+        errs (verily-validator coerced)]
+    (when (contains? errs fk)
+     (select-keys errs [fk]))))
+
+(defn field-validation!
+  "Validate a single field of the local business state"
+  [owner f ]
+  (let [business-state (om/get-state owner :inputs)
+        {:keys [unit-validators unit-coercers verily-validator]} (om/get-state owner)
+        field-state (f business-state)
+        unit {f (:value field-state)}]
+    (when (validate? field-state)
+      (om/set-state! owner [:inputs]
+                     (if-let [errs (or ((f unit-validators) unit)
+                                       (unit-verily-validation f unit unit-coercers verily-validator) )]
+                       (add-field-error business-state errs)
+                       (remove-field-error business-state f))))))
+
+
+
+#_(
+
+     ;; Processus de validation
+     ;; Faut il identifier les validation inter champs afin de les jouer au bon moment ?
+     ;; Une piste : Les erreurs verily nous indique si la validation est inter champs
+     ;; The source schema
+    (def dummy-sch {:email s/Str
+                    :confirm-email s/Str
+                    (s/optional-key :size) s/Int
+                    (s/optional-key :company) s/Str})
+
+   ;; The units schemas
+
+   (sch-glo->unit dummy-sch)
+
+
+   ;; business-state input
+
+   (def bs {:email {:value "email"
+                    :required true
+                    :type s/Str}
+            :confirm-email {:value "titi"
+                            :type s/Str
+                            :required true}
+            :size {:value "7"
+                   :required false
+                   :type s/Int}
+            :company {:value ""
+                      :required false
+                      :type s/Str}})
+
+   ;; pre-validation keep required fields or non required with value.
+
+   (pre-validation bs)
+
+   (def pvbs {:email "email"
+              :confirm-email "titi"
+              :size "7"})
+
+   ;; Coercion
+   (def sch-coercer (coerce/coercer dummy-sch validation-coercer))
+
+   (def pvcbs (sch-coercer pvbs))
+
+    (assert (= pvcbs {:email "email"
+               :confirm-email "titi"
+               :size 7}))
+
+   ;;Validation ->
+   (def rules [[:min-val 10 :size :size-min-length]
+               [:email [:email :confirm-email] :bad-email]
+               [:equal [:email :confirm-email] :email-match]])
+
+   (def validator (build-verily-validator rules))
+
+   (validator pvcbs)
+
+   (validator {:email "kjk"})
+
+   (filter #(vector? (:keys %)  ) ((v/validations->fn rules) pvcbs))
+
+
+   (unit-verily-validation :email {:email "hkhjk"} (build-unit-coercers  dummy-sch) validator)
+
+
+    ((:email (unit-schema-validators dummy-sch)) {:email nil})
+
+   )

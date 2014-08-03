@@ -52,7 +52,9 @@
      :order [:person/first-name :person/name :person/email :person/email-confirm :person/gender :person/birthdate :person/size :person/married]
      :person/gender {:type "radio-group"}
      :validations [[:min-val 10 :person/size :person-size-min-length]
-                           [:email :person/email :bad-email]]}))
+                   [:email :person/email :bad-email]
+                   [:email :person/email-confirm :bad-email]
+                   [:equal [:person/email :person/email-confirm] :email-match]]}))
 
 
 (defn app
@@ -75,7 +77,9 @@
  app
  app-state
  {:target (. js/document (getElementById "person"))
-  :shared {:i18n {"en" {:errors {:bad-email "The format of the email is invalid"
+  :shared {:i18n {"en" {:errors {:email-match "email and confirmation email doesn't match"
+                                 :bad-email "The format of the email is invalid"
+                                 :person-size-min-length "Too short !"
                                  :mandatory "This information is required"}
                         :create-person {:title "User account"
                                         :action {:label "Create person"
@@ -89,7 +93,9 @@
                                         :person/gender {:label "Gender"
                                                         :data {"M" {:label "Mister"}
                                                                "Ms" {:label "Miss"}}}}}
-                  "fr" {:errors {:mandatory "Cette information est obligatoire"
+                  "fr" {:errors {:email-match "email et la confirmation de l'email ne correspondent pas"
+                                 :mandatory "Cette information est obligatoire"
+                                 :person-size-min-length "Trop court !"
                                  :bad-email "Cette adresse email est invalide"}
                         :create-person {:title "Creation du compte"
                                         :action {:label "Créer personne"

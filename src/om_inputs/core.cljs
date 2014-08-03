@@ -13,7 +13,7 @@
             [om-inputs.schema-utils :as su :refer [sch-type]]
             [om-inputs.schemas :refer [sch-business-state sch-i18n sch-field-state SchOptions]]
             [om-inputs.validation :as va]
-            [om-inputs.i18n :refer [comp-i18n label desc desc? data]]
+            [om-inputs.i18n :refer [comp-i18n label desc desc? data error]]
             [om-inputs.typing-controls :refer [build-typing-control]]
             [jkkramer.verily :as v]
             [goog.events]))
@@ -236,8 +236,8 @@
    (let [{:keys [chan inputs lang]} (om/get-state owner)
          full-i18n (om/get-shared owner [:i18n lang])
          value (get-in inputs [k :value])
-         error (when-not (get-in inputs [k :valid] true) "has-error has-feedback")
-         [err-k & errs] (when error (get-in inputs [k :error]))
+         error-style (when-not (get-in inputs [k :valid] true) "has-error has-feedback")
+         [err-k & errs] (when error-style (get-in inputs [k :error]))
          valid (when (get-in inputs [k :valid]) "has-success")
          required (if (get-in inputs [k :required]) "required" "optional")
          attrs {:id (full-name k)
@@ -246,7 +246,7 @@
                 :value value
                 :onBlur #(put! chan [:validate k])
                 :onChange #(put! chan [k (e-value %)]) }]
-     (dom/div #js {:className (styles "form-group" error valid)}
+     (dom/div #js {:className (styles "form-group" error-style valid)}
 
               (dom/label #js {:htmlFor (full-name k)
                               :className (styles "control-label" required)}
@@ -255,8 +255,8 @@
               (when (:labeled opts) (dom/span #js {} value))
               (dom/div #js {:className "input-container"}
                        (magic-input {:k k :t t :attrs attrs :chan chan :opts opts :data (data i18n k)})
-                       (let [mess (get-in full-i18n [:errors err-k])]
-                         (when (and error mess)
+                       (let [mess (error full-i18n err-k)]
+                         (when (and error-style mess)
                            (om/build tooltip (om/get-props owner) {:opts {:k k}
                                                                    :state {:mess mess}
                                                                    :init-state {:chan chan}}))))))))
@@ -274,10 +274,10 @@
     opts :- SchOptions]
    (let [order (:order opts)
          schema-coercer (coerce/coercer schema va/validation-coercer)
-         validators (:validations opts)
-         validation (partial va/validate (partial va/verily validators) va/transform-verily-errors)
+         validation (va/build-verily-validator (:validations opts))
          checker (partial va/validate schema-coercer va/transform-schema-errors)
-         unit-coercers (va/unit->coercer schema)]
+         unit-coercers (va/build-unit-coercers schema)
+         unit-validators (va/unit-schema-validators unit-coercers)]
      (fn [app owner]
        (reify
          om/IDisplayName
@@ -290,17 +290,19 @@
           {:chan (chan)
            :inputs (build-init-state schema opts)
            :typing-controls (build-typing-control schema)
-           :unit-coercers unit-coercers})
+           :unit-coercers unit-coercers
+           :unit-validators unit-validators
+           :verily-validator validation})
          om/IWillMount
          (will-mount
           [this]
-          (let [{:keys [typing-controls unit-coercers chan inputs] :as state} (om/get-state owner)]
+          (let [{:keys [typing-controls chan inputs] :as state} (om/get-state owner)]
             (go
              (loop []
                (let [[k v] (<! chan)]
                  (condp = k
                    :kill-mess (om/update-state! owner [:inputs v] #(dissoc % :error) )
-                   :validate (va/field-validation! owner v unit-coercers)
+                   :validate (va/field-validation! owner v)
                    :create (let [raw (va/pre-validation v)
                                  coerced (schema-coercer raw)]
                              (if-let [errs (or (checker raw) (validation coerced))]
