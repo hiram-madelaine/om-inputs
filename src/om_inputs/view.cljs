@@ -14,8 +14,6 @@
 (def app-state (atom {}))
 
 
-
-
 (defn display-edn [_ _ edn]
   (js/alert edn))
 
@@ -52,9 +50,8 @@
      :order [:person/first-name :person/name :person/email :person/email-confirm :person/gender :person/birthdate :person/size :person/married]
      :person/gender {:type "radio-group"}
      :validations [[:min-val 10 :person/size :person-size-min-length]
-                   [:email :person/email :bad-email]
-                   [:email :person/email-confirm :bad-email]
-                   [:equal [:person/email :person/email-confirm] :email-match]]}))
+                   [:email [:person/email-confirm :person/email] :bad-email]
+                   [:equal [:person/email-confirm :person/email] :email-match]]}))
 
 
 (defn app

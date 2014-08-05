@@ -277,7 +277,8 @@
          validation (va/build-verily-validator (:validations opts))
          checker (partial va/validate schema-coercer va/transform-schema-errors)
          unit-coercers (va/build-unit-coercers schema)
-         unit-validators (va/unit-schema-validators unit-coercers)]
+         unit-validators (va/unit-schema-validators unit-coercers)
+         remove-errs-fn (partial va/remove-dependant-errors va/inter-fields-rules  (va/error->rule (:validations opts)))]
      (fn [app owner]
        (reify
          om/IDisplayName
@@ -292,7 +293,9 @@
            :typing-controls (build-typing-control schema)
            :unit-coercers unit-coercers
            :unit-validators unit-validators
-           :verily-validator validation})
+           :verily-validator validation
+           :remove-errs-fn remove-errs-fn
+           :validation-deps (va/fields-dependencies (:validations opts))})
          om/IWillMount
          (will-mount
           [this]

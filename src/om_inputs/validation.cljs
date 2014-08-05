@@ -80,6 +80,13 @@
          (for [[k _] errors]
            {k [:mandatory]}))))
 
+
+;___________________________________________________________
+;                                                           |
+;          Verily Validation handlers                        |
+;___________________________________________________________|
+
+
 (defn verily
   "Inversion of parameters for the verily validation function for partial application of the rules."
   [validators m]
@@ -100,9 +107,31 @@
   [rules]
   (partial validate (v/validations->fn rules) transform-verily-errors ))
 
-(defn build-schema-validator
-  [schema]
-  (let []))
+
+
+(def inter-fields-rules
+  #{:equal})
+
+(defn error->rule
+  "construit la map error->rule"
+  [rules]
+  (into {} (for [ r rules]
+    ((juxt last first) r))))
+
+
+
+(defn fields-dependencies
+  "Determines validation dependencies between fields"
+  ([rules]
+   (fields-dependencies inter-fields-rules rules))
+  ([rule-keys rules]
+   (into {}
+         (for [[r fs m] rules
+               :when (rule-keys r)
+               :let [[f & deps] fs]]
+           {f {:deps deps
+               :mess m
+               :rule r}}))))
 
 
 ;___________________________________________________________
@@ -138,6 +167,21 @@
 
 
 
+(s/defn ^:always-validate bs->unit-map :- {s/Keyword s/Any}
+  "Extract map fk->value for a single field."
+  [bs :- sch-business-state
+   fk :- s/Keyword]
+  (let [m (fk bs)]
+    {fk (:value m)}))
+
+
+(s/defn ^:always-validate business-state->map :- {s/Keyword s/Any}
+  "Transform the business local state into final map"
+  [bs :- sch-business-state]
+  (into {}(for [[k m] bs]
+              (bs->unit-map bs k))))
+
+
 (s/defn ^:always-validate
   pre-validation :- {s/Keyword s/Any}
   "Create the map that will be validated by the Schema :
@@ -145,9 +189,9 @@
   - required keys
   - optional keys with non blank values"
   [bs :- sch-business-state]
-  (let [vbs  (keep-fields-to-validate bs)]
-    (into {}(for [[k m] vbs]
-              {k (:value m)}))))
+  (-> bs
+      keep-fields-to-validate
+      business-state->map))
 
 
 (s/defn ^:always-validate
@@ -178,6 +222,9 @@
 
 (s/defn ^:always-validate
   validate? :- s/Bool
+  "Indicates if a field must be validated :
+  - required field
+  - optional field with non blank values"
   [s :- sch-field-state]
   (let [{:keys [required value]} s]
    (or required
@@ -202,25 +249,64 @@
       (assoc-in [k :valid] true)
       (update-in [k] dissoc :error)))
 
+
+
+(s/defn ^:always-validate remove-dependant-errors :- [s/Keyword]
+  "Remove the cross field errors keys from the validation errors.
+  This prevent errors from showing when inline validation occurs."
+  [cross-errs :- #{s/Keyword}
+   error-rule :- {s/Keyword s/Keyword}
+   errs :- [s/Keyword]]
+  (seq (remove
+        (fn [err] (cross-errs (get error-rule err))) errs)))
+
+
 (defn unit-verily-validation
-  "validate a single field against verily rules"
-  [fk unit unit-coercers  verily-validator]
+  "validate a single field against verily rules.
+   If an other field depends on this one, then the errors linked to this validation won't show up."
+  [fk unit {:keys [unit-coercers  remove-errs-fn verily-validator] :as state}]
   (let [coerced ((fk unit-coercers) unit)
         errs (verily-validator coerced)]
     (when (contains? errs fk)
+      (let[errs-unit (update-in errs [fk] remove-errs-fn)
+           res (select-keys errs-unit [fk])]
+          (when (fk res)
+            res)))))
+
+
+(defn unit-dependant-verily-validation
+  "Verily validation of a field that depend on other.
+   The confirm password is a typical example."
+  [fk state]
+  (let [{:keys [inputs validation-deps unit-coercers verily-validator]} state
+         deps (fk validation-deps)
+        ;coerced ((fk unit-coercers) bs)
+        coerced (business-state->map inputs)
+        errs (verily-validator coerced)]
+    (when (contains? errs fk)
      (select-keys errs [fk]))))
+
+
+(defn verily-validation
+  [fk unit state]
+  (let [{:keys [validation-deps]} state]
+    (if (fk validation-deps)
+      (unit-dependant-verily-validation fk state)
+      (unit-verily-validation fk unit state))))
+
+
 
 (defn field-validation!
   "Validate a single field of the local business state"
   [owner f ]
   (let [business-state (om/get-state owner :inputs)
-        {:keys [unit-validators unit-coercers verily-validator]} (om/get-state owner)
+        {:keys [unit-validators unit-coercers verily-validator] :as state} (om/get-state owner)
         field-state (f business-state)
         unit {f (:value field-state)}]
     (when (validate? field-state)
       (om/set-state! owner [:inputs]
                      (if-let [errs (or ((f unit-validators) unit)
-                                       (unit-verily-validation f unit unit-coercers verily-validator) )]
+                                       (verily-validation f unit state) )]
                        (add-field-error business-state errs)
                        (remove-field-error business-state f))))))
 
