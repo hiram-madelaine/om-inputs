@@ -47,7 +47,7 @@
    :person/gender (s/enum "M" "Ms")
    :person/married s/Bool}
    display-edn
-    {;:init {:person/birthdate (js/Date.)}
+    {:init {:person/gender "M"}
      :order [:person/first-name :person/name :person/email :person/email-confirm :person/gender :person/birthdate :person/age :person/size :person/married]
      :person/gender {:type "radio-group"}
      :validations [

@@ -53,7 +53,11 @@
   (apply dom/select (clj->js attrs)
          (dom/option #js {:value ""} "")
          (map (fn [code]
-                (dom/option #js {:value code} (get-in data [code :label] (if (keyword? code) (full-name code) code)))) (:vs t))))
+                (dom/option #js {:value code
+                                 :selected (= (:value attrs) code)}
+                            (get-in data [code :label] (if (keyword? code)
+                                                         (full-name code)
+                                                         code)))) (:vs t))))
 
 
 (defmethod magic-input "radio-group"
@@ -62,6 +66,7 @@
            (map (fn [code]
                   (dom/div #js {:className "radio"}
                            (dom/input  (clj->js (merge attrs {:type "radio"
+                                                              :checked (= (:value attrs) code)
                                                               :className ""
                                                               :id (full-name k)
                                                               :name (full-name k)
