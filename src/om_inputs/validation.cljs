@@ -56,10 +56,14 @@
     (d/parse (d/fmt d/default-fmt s))))
 
 
+
 (def validation-coercer
-  (merge coerce/+string-coercions+ {s/Str empty-string-coercer
-                                    (s/maybe s/Str) empty-string-coercer
-                                    s/Inst inst-coercer}))
+  {s/Num (coerce/safe coerce/edn-read-string)
+   s/Str empty-string-coercer
+   (s/maybe s/Str) empty-string-coercer
+   s/Inst inst-coercer})
+
+;; ((coerce/coercer {:size s/Num} validation-coercer) {:size 89})
 
 
 ;___________________________________________________________
@@ -266,6 +270,10 @@
         (fn [err] (cross-errs (get error-rule err))) errs)))
 
 
+
+(defn build-error-remover [rules cross-fields-rules]
+  (partial remove-dependant-errors cross-fields-rules  (error->rule rules)))
+
 (defn unit-verily-validation
   "validate a single field against verily rules.
    If an other field depends on this one, then the errors linked to this validation won't show up."
@@ -317,7 +325,7 @@
 
 
 
-#_(
+;; #_(
 
      ;; Processus de validation
      ;; Faut il identifier les validation inter champs afin de les jouer au bon moment ?
@@ -325,7 +333,7 @@
      ;; The source schema
     (def dummy-sch {:email s/Str
                     :confirm-email s/Str
-                    (s/optional-key :size) s/Int
+                    (s/optional-key :size) s/Num
                     (s/optional-key :company) s/Str})
 
    ;; The units schemas
@@ -379,9 +387,11 @@
    (filter #(vector? (:keys %)  ) ((v/validations->fn rules) pvcbs))
 
 
-   (unit-verily-validation :email {:email "hkhjk"} (build-unit-coercers  dummy-sch) validator)
+   (unit-verily-validation :size {:size 56} {:unit-coercers (build-unit-coercers  dummy-sch)
+                                              :verily-validator validator
+                                              :remove-errs-fn (build-error-remover rules)})
 
 
-    ((:email (unit-schema-validators dummy-sch)) {:email nil})
+    ((:size (unit-schema-validators (build-unit-coercers dummy-sch))) {:size "8989"})
 
-   )
+    ;;     )

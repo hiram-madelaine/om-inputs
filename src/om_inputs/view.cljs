@@ -42,14 +42,15 @@
    :person/email s/Str
    :person/email-confirm s/Str
    :person/birthdate s/Inst
-   (s/optional-key :person/size) (s/named s/Num "size")
+   :person/size (s/named s/Num "size")
+   :person/age  (s/named s/Int "age")
    :person/gender (s/enum "M" "Ms")
    :person/married s/Bool}
    display-edn
     {;:init {:person/birthdate (js/Date.)}
-     :order [:person/first-name :person/name :person/email :person/email-confirm :person/gender :person/birthdate :person/size :person/married]
+     :order [:person/first-name :person/name :person/email :person/email-confirm :person/gender :person/birthdate :person/age :person/size :person/married]
      :person/gender {:type "radio-group"}
-     :validations [[:min-val 10 :person/size :person-size-min-length]
+     :validations [
                    [:email [:person/email-confirm :person/email] :bad-email]
                    [:equal [:person/email-confirm :person/email] :email-match]]}))
 

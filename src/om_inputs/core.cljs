@@ -299,12 +299,13 @@
     action
     opts :- SchOptions]
    (let [order (:order opts)
+         verily-rules (:validations opts)
          schema-coercer (coerce/coercer schema va/validation-coercer)
-         validation (va/build-verily-validator (:validations opts))
+         validation (va/build-verily-validator verily-rules)
          checker (partial va/validate schema-coercer va/transform-schema-errors)
          unit-coercers (va/build-unit-coercers schema)
          unit-validators (va/unit-schema-validators unit-coercers)
-         remove-errs-fn (partial va/remove-dependant-errors va/inter-fields-rules  (va/error->rule (:validations opts)))]
+         remove-errs-fn (va/build-error-remover verily-rules va/inter-fields-rules)]
      (fn [app owner]
        (reify
          om/IDisplayName
@@ -321,7 +322,7 @@
            :unit-validators unit-validators
            :verily-validator validation
            :remove-errs-fn remove-errs-fn
-           :validation-deps (va/fields-dependencies (:validations opts))})
+           :validation-deps (va/fields-dependencies verily-rules)})
          om/IWillMount
          (will-mount
           [this]
