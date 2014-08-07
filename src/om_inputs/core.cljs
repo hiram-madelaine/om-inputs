@@ -11,7 +11,7 @@
             [om-inputs.utils :refer [full-name]]
             [om-inputs.date-utils :as d]
             [om-inputs.schema-utils :as su :refer [sch-type]]
-            [om-inputs.schemas :refer [sch-business-state sch-i18n sch-field-state SchOptions]]
+            [om-inputs.schemas :refer [sch-business-state sch-field-state SchOptions]]
             [om-inputs.validation :as va]
             [om-inputs.i18n :refer [comp-i18n label desc desc? data error]]
             [om-inputs.typing-controls :refer [build-typing-control]]
@@ -19,7 +19,6 @@
             [goog.events]))
 
 (enable-console-print!)
-
 
 ;_________________________________________________
 ;                                                 |
@@ -217,6 +216,33 @@
         (dom/div #js {:className "description"} (:desc m)))))
 
 
+;___________________________________________________________
+;                                                           |
+;        Syntactic sugar to access business state           |
+;___________________________________________________________|
+
+(s/defn ^:always-validate get-in-bs
+            [m :- sch-business-state
+             f :- s/Keyword
+             k :- s/Keyword]
+            (get-in m [f k]))
+
+
+(s/defn ^:always-validate fvalue :- s/Any
+        [m k]
+        (get-in-bs m k :value))
+
+(s/defn ^:always-validate fvalid :- (s/maybe s/Bool)
+        [m k]
+        (get-in-bs m k :valid))
+
+(s/defn ^:always-validate frequired :- s/Bool
+        [m k]
+            (get-in-bs m k :required))
+
+(s/defn ^:always-validate ferrors :- va/sch-errors-list
+        [m k]
+        (get-in-bs m k :error))
 
 ;___________________________________________________________
 ;                                                           |
@@ -235,28 +261,28 @@
   ([owner k t i18n opts]
    (let [{:keys [chan inputs lang]} (om/get-state owner)
          full-i18n (om/get-shared owner [:i18n lang])
-         value (get-in inputs [k :value])
-         error-style (when-not (get-in inputs [k :valid] true) "has-error has-feedback")
-         [err-k & errs] (when error-style (get-in inputs [k :error]))
-         valid (when (get-in inputs [k :valid]) "has-success")
-         required (if (get-in inputs [k :required]) "required" "optional")
+         valid (fvalid inputs k)
+         controled (not (nil? valid))
+         invalid (and controled (not valid))
+         input-style (cond valid "has-success" invalid "has-error has-feedback" :else "")
+         required-style (if (frequired inputs k) "required" "optional")
+         [err-k & errs] (when invalid (ferrors inputs k))
          attrs {:id (full-name k)
                 :ref (full-name k)
                 :className "form-control"
-                :value value
+                :value (fvalue inputs k)
                 :onBlur #(put! chan [:validate k])
                 :onChange #(put! chan [k (e-value %)]) }]
-     (dom/div #js {:className (styles "form-group" error-style valid)}
-
+     (dom/div #js {:className (styles "form-group" input-style)}
               (dom/label #js {:htmlFor (full-name k)
-                              :className (styles "control-label" required)}
+                              :className (styles "control-label" required-style)}
                          (label i18n k))
               (when (desc? i18n k) (dom/div #js {:className "description"} (desc i18n k)))
-              (when (:labeled opts) (dom/span #js {} value))
+              (when (:labeled opts) (dom/span #js {} (fvalue inputs k)))
               (dom/div #js {:className "input-container"}
                        (magic-input {:k k :t t :attrs attrs :chan chan :opts opts :data (data i18n k)})
                        (let [mess (error full-i18n err-k)]
-                         (when (and error-style mess)
+                         (when (and invalid mess)
                            (om/build tooltip (om/get-props owner) {:opts {:k k}
                                                                    :state {:mess mess}
                                                                    :init-state {:chan chan}}))))))))
@@ -318,14 +344,12 @@
                      (om/set-state! owner [:inputs k :value] (coerce v old-val)))))
                (recur)))))
          om/IDidMount
-         (did-mount [this]
-                    (handle-date-fields! owner d/default-fmt))
-         om/IWillUpdate
-         (will-update
-          [this props state])
+         (did-mount
+           [_]
+           (handle-date-fields! owner d/default-fmt))
          om/IRenderState
          (render-state
-          [_ {:keys [chan inputs lang] :as state}]
+          [_ {:keys [chan inputs] :as state}]
           (let [labels (comp-i18n owner comp-name schema)
                 title (get-in labels [:title])]
             (dom/div #js{:className "panel panel-default"}
@@ -342,7 +366,7 @@
                                (dom/div #js {:className "panel-button"}
                                         (dom/input #js {:type  "button"
                                                :className "btn btn-primary"
-                                               :value (label labels :action )
+                                               :value (label labels :action)
                                                :onClick #(put! chan [:create inputs])}))
                                (dom/div #js {:className "description"} (desc labels :action)))))))))))
 

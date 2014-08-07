@@ -8,22 +8,27 @@
 ;          Schemas                                |
 ;_________________________________________________|
 
-(def sch-i18n {:i18n {:inputs s/Any}})
+(def sch-field
+  "A field representation"
+  (s/named s/Keyword "field"))
 
 
-(def sch-field-state {:value s/Any
-                      :required s/Bool
-                      :type s/Any
-                      (s/optional-key :valid) s/Bool
-                      (s/optional-key :error) [s/Keyword]})
-
+(def sch-field-state
+  "Meta data about a single field"
+  {:value                  s/Any
+   :required               s/Bool
+   :type                   s/Any
+   (s/optional-key :valid) s/Bool
+   (s/optional-key :error) [s/Keyword]})
 
 (def sch-business-state
   "Local business state's data structure "
-  {s/Keyword sch-field-state})
+  {sch-field sch-field-state})
 
 
-(def sch-inputs {:inputs sch-business-state})
+(def sch-inputs
+  "path to the business state in the component local state."
+  {:inputs sch-business-state})
 
 (def sch-chan {:chan ManyToManyChannel})
 
@@ -31,7 +36,7 @@
 
 
 (def SchOptions
-  {(s/optional-key :order) [s/Keyword]
-   (s/optional-key :init) {s/Keyword s/Any}
+  {(s/optional-key :order) [sch-field]
+   (s/optional-key :init) {sch-field s/Any}
    (s/optional-key :validations) s/Any
    s/Keyword {:type s/Str}})

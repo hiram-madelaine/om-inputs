@@ -7,7 +7,7 @@
             [jkkramer.verily :as v]
             [schema.core :as s]
             [schema.coerce :as coerce]
-            [om-inputs.schemas :as su :refer [sch-business-state sch-field-state]]
+            [om-inputs.schemas :as su :refer [ sch-field sch-business-state sch-field-state]]
             [om-inputs.date-utils :as d]))
 
 
@@ -17,20 +17,25 @@
 ;___________________________________________________________|
 
 
+(def sch-errors-list
+  "The validation error message keys for a field.
+   The key is not the rule key but the message key."
+  [(s/named s/Keyword "message")])
+
 (def sch-errors
-  "Describes the om-input's error data structure.
+  "Discribes the om-input's error data structure.
    A field can have multiples errors."
-  {s/Keyword [s/Keyword]})
+  {sch-field sch-errors-list})
 
 
 (def sch-verily-errs
   "Describe the Verily errors data structure."
-  [{:keys [s/Keyword]
+  [{:keys [sch-field]
     :msg s/Keyword}])
 
 (def sch-schema-errs
-  "Describe the Scheam errors data structure"
-  {s/Keyword s/Any})
+  "Describe the Schema errors data structure"
+  {sch-field s/Any})
 
 
 

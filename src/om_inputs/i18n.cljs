@@ -12,8 +12,6 @@
 ;_________________________________________________|
 
 
-
-
 (def sch-i18n-field-labels {(s/optional-key :label) s/Str
                             (s/optional-key :desc) s/Str})
 
