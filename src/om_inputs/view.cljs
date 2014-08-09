@@ -47,7 +47,10 @@
    :person/gender (s/enum "M" "Ms")
    :person/married s/Bool}
    display-edn
-    {:init {:person/gender "M"}
+    {:init {:person/gender "M"
+            :person/size 187.50
+            :person/age 39.89
+            }
      :order [:person/first-name :person/name :person/email :person/email-confirm :person/gender :person/birthdate :person/age :person/size :person/married]
      :person/gender {:type "radio-group"}
      :validations [

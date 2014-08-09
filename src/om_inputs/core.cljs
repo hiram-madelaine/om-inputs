@@ -131,16 +131,29 @@
   (required? [k]
              true))
 
+
+
+(defn init-value
+  "Choose the initial value
+  TODO validate that the value is correct
+  Trying to resolve the case of s/Num when you have an initial value"
+  [v t]
+  (condp = t
+    s/Num (str v)
+    v))
+
 (s/defn ^:always-validate  build-init-state :- sch-business-state
   "Build the initial business local state backing the inputs in the form.
    It accepts init values from the options"
   ([sch
     opts]
    (into {} (for [[k t] sch
-                  :let [fk (get k :k k)]]
-              [fk {:value (get-in opts [:init fk] "")
+                  :let [fk (get k :k k)
+                        t (sch-type t)
+                        init (get-in opts [:init fk] "")]]
+              [fk {:value (init-value init t)
                    :required (required? k)
-                   :type (sch-type t)}])))
+                   :type t}])))
   ([sch]
    (build-init-state sch {})))
 
