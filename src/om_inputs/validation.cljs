@@ -325,7 +325,7 @@
 
 
 
-;; #_(
+#_(
 
      ;; Processus de validation
      ;; Faut il identifier les validation inter champs afin de les jouer au bon moment ?
@@ -392,6 +392,5 @@
                                               :remove-errs-fn (build-error-remover rules)})
 
 
-    ((:size (unit-schema-validators (build-unit-coercers dummy-sch))) {:size "8989"})
 
-    ;;     )
+ )
