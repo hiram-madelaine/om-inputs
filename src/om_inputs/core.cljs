@@ -133,25 +133,28 @@
 
 
 
-(defn init-value
-  "Choose the initial value
-  TODO validate that the value is correct
-  Trying to resolve the case of s/Num when you have an initial value"
+(defn init-state-value
+  "Choose the initial value.
+   s/Num fields must be represented as string because of the typing control.
+  If an initial value is provided for a s/Num it will be represented as a string in the
+  local state."
   [v t]
   (condp = t
     s/Num (str v)
     v))
 
+
 (s/defn ^:always-validate  build-init-state :- sch-business-state
   "Build the initial business local state backing the inputs in the form.
-   It accepts init values from the options"
+   It accepts init values from the options
+  TODO validate that the value is correct"
   ([sch
-    opts]
+    init]
    (into {} (for [[k t] sch
                   :let [fk (get k :k k)
                         t (sch-type t)
-                        init (get-in opts [:init fk] "")]]
-              [fk {:value (init-value init t)
+                        init-val (get init fk)]]
+              [fk {:value (init-state-value init-val t)
                    :required (required? k)
                    :type t}])))
   ([sch]
@@ -315,9 +318,9 @@
   ([comp-name :- s/Keyword
     schema
     action
-    opts :- SchOptions]
+    {:keys [validations init]  :as opts} :- SchOptions]
    (let [order (:order opts)
-         verily-rules (:validations opts)
+         verily-rules validations
          schema-coercer (coerce/coercer schema va/validation-coercer)
          validation (va/build-verily-validator verily-rules)
          checker (partial va/validate schema-coercer va/transform-schema-errors)
@@ -334,7 +337,7 @@
          (init-state
           [_]
           {:chan (chan)
-           :inputs (build-init-state schema opts)
+           :inputs (build-init-state schema init)
            :typing-controls (build-typing-control schema)
            :unit-coercers unit-coercers
            :unit-validators unit-validators
