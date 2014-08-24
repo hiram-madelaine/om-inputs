@@ -51,6 +51,9 @@
   (if (str/blank? s) nil s))
 
 (defn inst-coercer
+  "Coerce an input string to a date.
+  The default format is used.
+  A blank string is coerced to nil."
   [s]
   (when-not (str/blank? s)
     (d/parse (d/fmt d/default-fmt s))))
@@ -58,6 +61,7 @@
 
 
 (def validation-coercer
+  "Schema coercers used for inputs that are sent as string."
   {s/Num (coerce/safe coerce/edn-read-string)
    s/Str empty-string-coercer
    (s/maybe s/Str) empty-string-coercer
@@ -70,7 +74,6 @@
 ;                                                           |
 ;          Validation handlers                              |
 ;___________________________________________________________|
-
 
 
 (defn validate
@@ -309,19 +312,22 @@
 
 
 
-(defn field-validation!
-  "Validate a single field of the local business state"
-  [owner f ]
-  (let [business-state (om/get-state owner :inputs)
-        {:keys [unit-validators unit-coercers verily-validator] :as state} (om/get-state owner)
-        field-state (f business-state)
+(defn field-validation
+  [f state]
+  (let [{:keys [inputs unit-validators verily-validator]} state
+        field-state (f inputs)
         unit {f (:value field-state)}]
     (when (validate? field-state)
-      (om/set-state! owner [:inputs]
-                     (if-let [errs (or ((f unit-validators) unit)
-                                       (verily-validation f unit state) )]
-                       (add-field-error business-state errs)
-                       (remove-field-error business-state f))))))
+      (if-let [errs (or ((f unit-validators) unit)
+                        (verily-validation f unit state) )]
+        (add-field-error inputs errs)
+        (remove-field-error inputs f)))))
+
+(defn field-validation!
+  "Validate a single field of the local business state"
+  ([owner f]
+   (when-let [new-business-state (field-validation f (om/get-state owner))]
+     (om/set-state! owner [:inputs] new-business-state))))
 
 
 
