@@ -1,7 +1,8 @@
 (ns om-inputs.date-utils
   (:require [clojure.string :as str])
   (:import [goog.i18n DateTimeFormat DateTimeParse]
-           [goog.ui InputDatePicker]))
+           [goog.ui InputDatePicker]
+           [goog.date Date Interval]))
 
 
 ;_________________________________________________
@@ -84,3 +85,19 @@
                        (set! (.-value el) v)))))
   (InputDatePicker. (DateTimeFormat. f) (DateTimeParse. f) nil nil)))
 
+
+;_________________________________________________
+;                                                 |
+;          Point in Time Utils                    |
+;_________________________________________________|
+
+(defn at
+  "Create a js/Date at plus/minus days"
+  [d]
+  (goog-date->js-date
+   (doto (Date.)
+     (.add (Interval. Interval.DAYS d)))))
+
+(defn tomorrow
+  []
+  (at 1))
