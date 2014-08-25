@@ -23,18 +23,18 @@
   [(s/named s/Keyword "message")])
 
 (def sch-errors
-  "Discribes the om-input's error data structure.
+  "Describes the om-input's error data structure.
    A field can have multiples errors."
   {sch-field sch-errors-list})
 
 
 (def sch-verily-errs
-  "Describe the Verily errors data structure."
+  "Describes the Verily errors data structure."
   [{:keys [sch-field]
     :msg s/Keyword}])
 
 (def sch-schema-errs
-  "Describe the Schema errors data structure"
+  "Describes the Schema errors data structure"
   {sch-field s/Any})
 
 
@@ -99,12 +99,6 @@
 ;___________________________________________________________|
 
 
-(defn verily
-  "Inversion of parameters for the verily validation function for partial application of the rules."
-  [validators m]
-  (v/validate m validators))
-
-
 (s/defn transform-verily-errors :- sch-errors
   "Transforms the Verily's error data structure into the common error data structure."
   [errs :- sch-verily-errs]
@@ -125,7 +119,7 @@
   #{:equal})
 
 (defn error->rule
-  "construit la map error->rule"
+  "Build the map error->rule"
   [rules]
   (into {} (for [ r rules]
     ((juxt last first) r))))
@@ -190,7 +184,7 @@
 (s/defn ^:always-validate business-state->map :- {s/Keyword s/Any}
   "Transform the business local state into final map"
   [bs :- sch-business-state]
-  (into {}(for [[k m] bs]
+  (into {} (for [[k _] bs]
               (bs->unit-map bs k))))
 
 
@@ -315,15 +309,14 @@
 
 (defn field-validation
   "Validation of a single field"
-  [f state]
+  [fk state]
   (let [{:keys [inputs unit-validators]} state
-        field-state (f inputs)
-        unit {f (:value field-state)}]
-    (when (validate? field-state)
-      (if-let [errs (or ((f unit-validators) unit)
-                        (verily-validation f unit state) )]
+        unit (bs->unit-map inputs fk)]
+    (when (validate? (fk inputs))
+      (if-let [errs (or ((fk unit-validators) unit)
+                        (verily-validation fk unit state))]
         (add-field-error inputs errs)
-        (remove-field-error inputs f)))))
+        (remove-field-error inputs fk)))))
 
 (defn field-validation!
   "Validate a single field of the local business state and update the local state."
