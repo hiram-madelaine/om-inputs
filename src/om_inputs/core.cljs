@@ -75,7 +75,7 @@
                            (get-in data [code :label] (if (keyword? code) (full-name code) code)))) (:vs t))))
 
 
-(defmethod magic-input js/Date
+(defmethod magic-input s/Inst
   [{:keys [k attrs]}]
   (let [v (:value attrs)
         date-in (d/display-date v)]
@@ -83,7 +83,7 @@
                                {:value date-in})))))
 
 
-(defmethod magic-input js/Boolean
+(defmethod magic-input s/Bool
   [{:keys [k attrs chan]}]
   (let [value (:value attrs)]
    (dom/input (clj->js (merge attrs {:checked (js/Boolean value)
