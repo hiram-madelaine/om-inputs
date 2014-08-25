@@ -1,12 +1,11 @@
-# The goal of this library is to rapidly prototype UI with Om/React
+# This library generates Om/React forms
 
-The library generates components based on data description.
+The generation is based on data description and uses [Prismatic/Schema](https://github.com/Prismatic/schema) for this purpose.
 
-The library uses [Prismatic/Schema](https://github.com/Prismatic/schema) to describe the data.
+## Status of the project
 
-Using Schema allows the :
-* Validation of the data ;
-* Coercion of String to proper types.
+This library is used for a real production project but is not released yet.
+At this stage, the project is subject to breaking changes.
 
 
 ## Show me what looks like !
@@ -45,7 +44,11 @@ The name is used :
 
 #### Description of the fields
 
-The fields of a component are described with Schema :
+The fields of a component are described with Schema.
+
+Using Schema allows the :
+* Validation of the data ;
+* Coercion of String to proper types.
 
 ##### Supported Schema types
 
