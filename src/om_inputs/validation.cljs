@@ -294,7 +294,7 @@
   "Verily validation of a field that depend on other.
    The confirm password is a typical example."
   [fk state]
-  (let [{:keys [inputs validation-deps unit-coercers verily-validator]} state
+  (let [{:keys [inputs validation-deps verily-validator]} state
          deps (fk validation-deps)
         ;coerced ((fk unit-coercers) bs)
         coerced (business-state->map inputs)
@@ -304,6 +304,7 @@
 
 
 (defn verily-validation
+  "Verily validation of a single field"
   [fk unit state]
   (let [{:keys [validation-deps]} state]
     (if (fk validation-deps)
@@ -313,8 +314,9 @@
 
 
 (defn field-validation
+  "Validation of a single field"
   [f state]
-  (let [{:keys [inputs unit-validators verily-validator]} state
+  (let [{:keys [inputs unit-validators]} state
         field-state (f inputs)
         unit {f (:value field-state)}]
     (when (validate? field-state)
@@ -324,7 +326,7 @@
         (remove-field-error inputs f)))))
 
 (defn field-validation!
-  "Validate a single field of the local business state"
+  "Validate a single field of the local business state and update the local state."
   ([owner f]
    (when-let [new-business-state (field-validation f (om/get-state owner))]
      (om/set-state! owner [:inputs] new-business-state))))
