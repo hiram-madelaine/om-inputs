@@ -36,19 +36,36 @@
       n)))
 
 
-
 (def typing-control-fns
   {integer? only-integer
   ; js/Date parse-date ;Let schema coercion deal with data coercion
    js/Number only-number})
 
+(defprotocol ControlTyping
+  (control [r n o]))
+
+(extend-protocol ControlTyping
+  js/RegExp
+  (control [f n o]
+           (if (str/blank? n)
+             ""
+             (if (re-matches f n)
+               n
+               o))))
+
+
+(defn get-typing-ctrl-fn
+  [s]
+  (if-let [cfn (get typing-control-fns (sch-type s))]
+    cfn
+    (when (= (type s) js/RegExp)
+      (partial control s))))
 
 
 (defn build-typing-control
   "Build the coercion map field->coercion-fn from all entries of the Schema"
   [sch]
-  (reduce (fn[acc [k v]]
-            (if-let [cfn (get typing-control-fns (sch-type v))]
+  (reduce (fn[acc [k s]]
+            (if-let [cfn (get-typing-ctrl-fn s)]
                           (assoc acc (get k :k k) cfn)
                            acc)) {} sch))
-

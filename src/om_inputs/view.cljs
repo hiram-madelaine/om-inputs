@@ -4,8 +4,8 @@
    [om.dom :as dom :include-macros true]
    [om-inputs.core :as in :refer [build-input make-input-comp]]
    [clojure.string :as str]
-   [schema.core :as s]))
-
+   [schema.core :as s]
+   [om-inputs.date-utils :refer  [tomorrow]]))
 
 
 (def lang-sch {:lang (s/enum "en" "fr")})
@@ -41,17 +41,20 @@
    :person/name s/Str
    :person/email s/Str
    :person/email-confirm s/Str
+   :person/vat (s/Regex #"^[A-Z]{1,2}[0-9]{0,12}$")
    :person/birthdate s/Inst
    :person/size (s/named s/Num "size")
    :person/age  (s/named s/Int "age")
    :person/gender (s/enum "M" "Ms")
-   :person/married s/Bool}
+   :person/married (s/eq true)}
    display-edn
-    {:init {:person/gender "M"
+    {:init {:person/gender "Ms"
             :person/size 187.50
             :person/age 39.89
-            }
-     :order [:person/first-name :person/name :person/email :person/email-confirm :person/gender :person/birthdate :person/age :person/size :person/married]
+            :person/birthdate (tomorrow)
+            ;:person/married true
+            :person/name "MADELAINE"}
+     :order [:person/first-name :person/name  :person/vat :person/email :person/email-confirm :person/gender :person/birthdate :person/age :person/size :person/married]
      :person/gender {:type "radio-group"}
      :validations [
                    [:email [:person/email-confirm :person/email] :bad-email]
@@ -85,6 +88,8 @@
                         :create-person {:title "User account"
                                         :action {:label "Create person"
                                                  :desc "We won't debit your card now."}
+                                        :person/vat {:label "VAT"
+                                                     :desc "Only alphanumeric"}
                                         :person/name {:label "Name"}
                                         :person/email {:desc "You will never receive spam."}
                                         :person/email-confirm {:desc "Sorry copy and paste deactivated."}
@@ -101,7 +106,10 @@
                         :create-person {:title "Creation du compte"
                                         :action {:label "Créer personne"
                                                  :desc "Nous n'allons pas débiter votre carte à cette étape."}
+
                                        :person/name {:label "Nom"}
+                                        :person/vat {:label "TVA"
+                                                     :desc "Charactères alphanumeriques"}
                                        :person/email {:desc "Nous n'envoyons jamais de spam, promis !"}
                                        :person/first-name {:label "Prénom"}
                                        :person/birthdate {:label "Date de naissance"}

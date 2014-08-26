@@ -1,11 +1,19 @@
-# This library generates Om/React forms
+# A ClojureScript library that generates Om/React forms
 
 The generation is based on data description and uses [Prismatic/Schema](https://github.com/Prismatic/schema) for this purpose.
 
-## Status of the project
+## Project Goals
 
-This library is used for a real production project but is not released yet.
-At this stage, the project is subject to breaking changes.
+* Generate quick prototype or production quality forms
+* Provide best practice UX
+* Use no external JS Framework dependencies beside React.js
+
+
+## Project Maturity
+
+om-inputs is very young.
+It is used for a real production project but is not released yet.
+At this stage, the project is subject to many breaking changes.
 
 
 ## Show me what looks like !
@@ -50,13 +58,15 @@ Using Schema allows the :
 * Validation of the data ;
 * Coercion of String to proper types.
 
-##### Supported Schema types
+##### Supported atomic Schema types
 
 * s/Str
 * s/Int
 * s/Inst
 * s/enum
 * s/Bool
+* s/Eq
+* s/Regex
 
 A value can be nil using s/maybe :
 

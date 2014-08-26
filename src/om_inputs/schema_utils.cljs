@@ -32,6 +32,7 @@
     schema.core.Maybe (sch-type (:schema t))
     schema.core.NamedSchema (sch-type (:schema t))
     schema.core.EnumSchema "enum"
+    schema.core.EqSchema (type (:v t))
     js/Function t
     "other"))
 

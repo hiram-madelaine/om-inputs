@@ -63,6 +63,7 @@
 (def validation-coercer
   "Schema coercers used for inputs that are sent as string."
   {s/Num (coerce/safe coerce/edn-read-string)
+   s/Regex empty-string-coercer
    s/Str empty-string-coercer
    (s/maybe s/Str) empty-string-coercer
    s/Inst inst-coercer})
