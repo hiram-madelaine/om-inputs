@@ -22,6 +22,7 @@
                   o
                   r))))
 
+
  (defn only-number
    "Validate a that an input of type s/Num contains a value that can be converted in a numeric.
     If not the previous value is used.
@@ -37,9 +38,9 @@
 
 
 (def typing-control-fns
-  {integer? only-integer
+  {integer? (fnil only-integer "" "")
   ; js/Date parse-date ;Let schema coercion deal with data coercion
-   js/Number only-number})
+   js/Number (fnil only-number "" "")})
 
 (defprotocol ControlTyping
   (control [r n o]))
@@ -59,7 +60,7 @@
   (if-let [cfn (get typing-control-fns (sch-type s))]
     cfn
     (when (= (type s) js/RegExp)
-      (partial control s))))
+      (fnil (partial control s) "" ""))))
 
 
 (defn build-typing-control

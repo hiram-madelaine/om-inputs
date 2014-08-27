@@ -326,7 +326,8 @@
          checker (partial va/validate schema-coercer va/transform-schema-errors)
          unit-coercers (va/build-unit-coercers schema)
          unit-validators (va/unit-schema-validators unit-coercers)
-         remove-errs-fn (va/build-error-remover verily-rules va/inter-fields-rules)]
+         remove-errs-fn (va/build-error-remover verily-rules va/inter-fields-rules)
+         typing-controls (build-typing-control schema)]
      (fn [app owner]
        (reify
          om/IDisplayName
@@ -338,7 +339,6 @@
           [_]
           {:chan (chan)
            :inputs (build-init-state schema init)
-           :typing-controls (build-typing-control schema)
            :unit-coercers unit-coercers
            :unit-validators unit-validators
            :verily-validator validation
@@ -347,7 +347,7 @@
          om/IWillMount
          (will-mount
           [this]
-          (let [{:keys [typing-controls chan inputs] :as state} (om/get-state owner)]
+          (let [{:keys [ chan inputs] :as state} (om/get-state owner)]
             (go
              (loop []
                (let [[k v] (<! chan)]
