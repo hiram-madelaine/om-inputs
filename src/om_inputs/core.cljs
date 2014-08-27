@@ -13,7 +13,7 @@
             [om-inputs.schema-utils :as su :refer [sch-type]]
             [om-inputs.schemas :refer [sch-business-state sch-field-state SchOptions]]
             [om-inputs.validation :as va]
-            [om-inputs.i18n :refer [comp-i18n label desc desc? data error]]
+            [om-inputs.i18n :refer [comp-i18n label desc desc? data error ph]]
             [om-inputs.typing-controls :refer [build-typing-control]]
             [jkkramer.verily :as v]
             [goog.events]))
@@ -153,7 +153,7 @@
    (into {} (for [[k t] sch
                   :let [fk (get k :k k)
                         t (sch-type t)
-                        init-val (get init fk)]]
+                        init-val (get init fk "")]]
               [fk {:value (init-state-value init-val t)
                    :required (required? k)
                    :type t}])))
@@ -289,11 +289,13 @@
          required-style (if (frequired inputs k) "required" "optional")
          [err-k & errs] (when invalid (ferrors inputs k))
          attrs {:id (full-name k)
+                :key (full-name k)
                 :ref (full-name k)
                 :className "form-control"
                 :value (fvalue inputs k)
                 :onBlur #(put! chan [:validate k])
-                :onChange #(put! chan [k (e-value %)]) }]
+                :onChange #(put! chan [k (e-value %)])
+                :placeholder (ph i18n k)}]
      (dom/div #js {:className (styles "form-group" input-style)}
               (dom/label #js {:htmlFor (full-name k)
                               :className (styles "control-label" required-style)}
@@ -327,7 +329,8 @@
          unit-coercers (va/build-unit-coercers schema)
          unit-validators (va/unit-schema-validators unit-coercers)
          remove-errs-fn (va/build-error-remover verily-rules va/inter-fields-rules)
-         typing-controls (build-typing-control schema)]
+         typing-controls (build-typing-control schema)
+         initial-bs (build-init-state schema init)]
      (fn [app owner]
        (reify
          om/IDisplayName
@@ -338,7 +341,7 @@
          (init-state
           [_]
           {:chan (chan)
-           :inputs (build-init-state schema init)
+           :inputs initial-bs
            :unit-coercers unit-coercers
            :unit-validators unit-validators
            :verily-validator validation
@@ -347,7 +350,7 @@
          om/IWillMount
          (will-mount
           [this]
-          (let [{:keys [ chan inputs] :as state} (om/get-state owner)]
+          (let [chan (om/get-state owner :chan)]
             (go
              (loop []
                (let [[k v] (<! chan)]
@@ -359,7 +362,7 @@
                              (if-let [errs (or (checker raw) (validation coerced))]
                                (om/set-state! owner [:inputs] (va/handle-errors v errs))
                                (do
-                                 (om/set-state! owner [:inputs] inputs)
+                                 (om/set-state! owner :inputs initial-bs)
                                  (action app owner coerced))))
                    (let [coerce (get typing-controls k (fn [n _] n))
                          old-val (om/get-state owner [:inputs k :value])]

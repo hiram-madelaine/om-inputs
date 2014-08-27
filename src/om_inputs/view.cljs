@@ -33,7 +33,7 @@
                   "fr" {:language {:action "Choix de la langue"
                                    :lang {:label "Langue"
                                           :data {"en" "Anglais"
-                                                 "fr" "Français"}}}}}} })
+                                                 "fr" "Français"}}}}}}})
 
 (def input-view (make-input-comp
   :create-person
@@ -50,7 +50,7 @@
    display-edn
     {:init {:person/gender "Ms"
             :person/size 187.50
-            :person/age 39.89
+;;             :person/age 39.89
             :person/birthdate (tomorrow)
             ;:person/married true
             :person/name "MADELAINE"}
@@ -89,7 +89,8 @@
                                         :action {:label "Create person"
                                                  :desc "We won't debit your card now."}
                                         :person/vat {:label "VAT"
-                                                     :desc "Only alphanumeric"}
+                                                     :desc "Only alphanumeric"
+                                                     :ph "AB0123456789"}
                                         :person/name {:label "Name"}
                                         :person/email {:desc "You will never receive spam."}
                                         :person/email-confirm {:desc "Sorry copy and paste deactivated."}
@@ -109,7 +110,8 @@
 
                                        :person/name {:label "Nom"}
                                         :person/vat {:label "TVA"
-                                                     :desc "Charactères alphanumeriques"}
+                                                     :desc "Charactères alphanumeriques"
+                                                     :ph "AB0123456789"}
                                        :person/email {:desc "Nous n'envoyons jamais de spam, promis !"}
                                        :person/first-name {:label "Prénom"}
                                        :person/birthdate {:label "Date de naissance"}

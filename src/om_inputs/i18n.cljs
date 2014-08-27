@@ -13,7 +13,8 @@
 
 
 (def sch-i18n-field-labels {(s/optional-key :label) s/Str
-                            (s/optional-key :desc) s/Str})
+                            (s/optional-key :desc) s/Str
+                            (s/optional-key :ph) s/Str})
 
 (def sch-i18n-enum-labels {(s/optional-key :data) {s/Any sch-i18n-field-labels}})
 
@@ -117,3 +118,6 @@
    k :- s/Keyword]
   (get-in full-i18n [:errors k]))
 
+(defn ph
+  [i18n k]
+  (get-in i18n [k :ph]))
