@@ -39,4 +39,6 @@
   {(s/optional-key :order) [sch-field]
    (s/optional-key :init) {sch-field s/Any}
    (s/optional-key :validations) s/Any
-   s/Keyword {:type s/Str}})
+   s/Keyword {(s/optional-key :type) s/Str
+              (s/optional-key :labeled) s/Bool
+              (s/optional-key :attrs) s/Any}})

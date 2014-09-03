@@ -1,3 +1,7 @@
+## 0.2.9-SNAPSHOT
+
+* FIX Labeled inputs.
+
 ## 0.2.8-SNAPSHOT
 
 * EVOL Add placeholder support. `{:ph "blah blah"}`

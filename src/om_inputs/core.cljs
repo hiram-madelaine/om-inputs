@@ -96,6 +96,10 @@
   (dom/input (clj->js (merge {:type "number"} attrs))))
 
 
+(defmethod magic-input "range"
+ [{:keys [k attrs data]}]
+  (dom/input (clj->js (merge {:type "range"} attrs))))
+
 (defmethod magic-input :default
   [{:keys [k attrs]}]
   (dom/input (clj->js attrs)))
@@ -295,13 +299,16 @@
                 :value (fvalue inputs k)
                 :onBlur #(put! chan [:validate k])
                 :onChange #(put! chan [k (e-value %)])
-                :placeholder (ph i18n k)}]
+                :placeholder (ph i18n k)}
+         attrs (merge attrs (get-in opts [k :attrs]))
+         ]
      (dom/div #js {:className (styles "form-group" input-style)}
               (dom/label #js {:htmlFor (full-name k)
                               :className (styles "control-label" required-style)}
                          (label i18n k))
+              (when (get-in opts [k :labeled]) (dom/label #js {:className "badge"} (fvalue inputs k)))
               (when (desc? i18n k) (dom/div #js {:className "description"} (desc i18n k)))
-              (when (:labeled opts) (dom/span #js {} (fvalue inputs k)))
+
               (dom/div #js {:className "input-container"}
                        (magic-input {:k k :t t :attrs attrs :chan chan :opts opts :data (data i18n k)})
                        (let [mess (error full-i18n err-k)]
