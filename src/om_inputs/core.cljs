@@ -53,8 +53,7 @@
   (apply dom/select (clj->js attrs)
          (dom/option #js {:value ""} "")
          (map (fn [code]
-                (dom/option #js {:value code
-                                 :selected (= (:value attrs) code)}
+                (dom/option #js {:value code}
                             (get-in data [code :label] (if (keyword? code)
                                                          (full-name code)
                                                          code)))) (:vs t))))
