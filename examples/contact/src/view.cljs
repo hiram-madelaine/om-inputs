@@ -77,8 +77,8 @@
      [this state]
      (dom/div #js {:className "container"}
        (dom/div #js {}
-              (dom/a #js {:href "#"} (dom/img #js {:src "fr.png" :className "flag" :onClick #(om/set-state! owner [:lang] "fr")}))
-              (dom/a #js {:href "#"} (dom/img #js {:src "gb.png" :className "flag" :onClick #(om/set-state! owner [:lang] "en")})))
+              (dom/a #js {:href "#"} (dom/img #js {:src "img/fr.png" :className "flag" :onClick #(om/set-state! owner [:lang] "fr")}))
+              (dom/a #js {:href "#"} (dom/img #js {:src "img/gb.png" :className "flag" :onClick #(om/set-state! owner [:lang] "en")})))
       (om/build input-view app {:state state})))))
 
 (om/root

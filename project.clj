@@ -21,9 +21,9 @@
 
   :cljsbuild {
               :builds [{:id "dev"
-                        :source-paths ["src"]
-                        :compiler {:output-to "om_inputs.js"
-                                   :output-dir "out"
+                        :source-paths ["src" "examples/contact/src"]
+                        :compiler {:output-to "examples/contact/om_inputs.js"
+                                   :output-dir "examples/contact/out"
                                    :optimizations :none
                                    :source-map true}}
                        {:id "simple"
