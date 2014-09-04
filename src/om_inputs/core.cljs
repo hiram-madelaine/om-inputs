@@ -252,21 +252,54 @@
             (get-in m [f k]))
 
 
-(s/defn ^:always-validate fvalue :- s/Any
+(s/defn ^:always-validate
+  fvalue :- s/Any
         [m k]
         (get-in-bs m k :value))
 
-(s/defn ^:always-validate fvalid :- (s/maybe s/Bool)
+(s/defn ^:always-validate
+  fvalid :- (s/maybe s/Bool)
         [m k]
         (get-in-bs m k :valid))
 
-(s/defn ^:always-validate frequired :- s/Bool
+(s/defn ^:always-validate
+  frequired :- s/Bool
         [m k]
             (get-in-bs m k :required))
 
 (s/defn ^:always-validate ferrors :- va/sch-errors-list
         [m k]
         (get-in-bs m k :error))
+
+(s/defn fdisabled :- (s/maybe s/Bool)
+  [m k]
+  (get-in-bs m k :disabled))
+
+;___________________________________________________________
+;                                                           |
+;        Business State Manipulation                        |
+;___________________________________________________________|
+
+
+(s/defn assoc-in-all :- sch-business-state
+  [bs :- sch-business-state
+   k :- s/Keyword
+   v :- s/Any]
+  (into {}
+        (for [[fk s] bs]
+          {fk (assoc s k v)})))
+
+
+(defn disable-all
+  "Disable all inputs after successful validation."
+  [bs]
+  (assoc-in-all bs :disabled true))
+
+(defn enable-all
+  "Disable all inputs after successful validation."
+  [bs]
+  (assoc-in-all bs :disabled false))
+
 
 ;___________________________________________________________
 ;                                                           |
@@ -298,7 +331,8 @@
                 :value (fvalue inputs k)
                 :onBlur #(put! chan [:validate k])
                 :onChange #(put! chan [k (e-value %)])
-                :placeholder (ph i18n k)}
+                :placeholder (ph i18n k)
+                :disabled (fdisabled inputs k)}
          attrs (merge attrs (get-in opts [k :attrs]))
          ]
      (dom/div #js {:className (styles "form-group" input-style)}
@@ -347,6 +381,10 @@
          (init-state
           [_]
           {:chan (chan)
+           :action-chan (chan)
+           :validation-chan (chan)
+           :created-chan (chan)
+           :new-chan (chan)
            :inputs initial-bs
            :unit-coercers unit-coercers
            :unit-validators unit-validators
@@ -356,31 +394,57 @@
          om/IWillMount
          (will-mount
           [this]
-          (let [chan (om/get-state owner :chan)]
+          (let [{:keys [chan action-chan validation-chan created-chan new-chan]} (om/get-state owner)]
+            (go
+             (loop []
+               (prn "init")
+               (om/set-state! owner :inputs initial-bs)
+               (loop []
+                 (<! action-chan)
+                 (prn "let's validate first !")
+                 (let [v (om/get-state owner :inputs)
+                       raw (va/pre-validation v)
+                       coerced (schema-coercer raw)]
+                   (if-let [errs (or (checker raw) (validation coerced))]
+                     (do
+                       (om/set-state! owner [:inputs] (va/handle-errors v errs))
+                       (recur))
+                     (put! validation-chan :validee))))
+               (<! validation-chan)
+               (prn "validée, proceed to creation")
+               (let [v (om/get-state owner :inputs)
+                                 raw (va/pre-validation v)
+                                 coerced (schema-coercer raw)]
+                             (action app owner coerced)
+                             (put! created-chan [:created]))
+               (<! created-chan)
+               (prn "L'action s'est déroulée avec succès !")
+               (if (get-in opts [:action :one-shot])
+                 (do
+                   (om/set-state-nr! owner [:action :disabled] true)
+                   (om/update-state! owner :inputs #(disable-all %)))
+                 (recur))
+               (<! new-chan)
+               (om/set-state-nr! owner [:action :disabled] false)
+               (om/update-state-nr! owner :inputs #(enable-all %))
+               (recur)))
             (go
              (loop []
                (let [[k v] (<! chan)]
                  (condp = k
                    :kill-mess (om/update-state! owner [:inputs v] #(dissoc % :error) )
                    :validate (va/field-validation! owner v)
-                   :create (let [raw (va/pre-validation v)
-                                 coerced (schema-coercer raw)]
-                             (if-let [errs (or (checker raw) (validation coerced))]
-                               (om/set-state! owner [:inputs] (va/handle-errors v errs))
-                               (do
-                                 (om/set-state! owner :inputs initial-bs)
-                                 (action app owner coerced))))
                    (let [coerce (get typing-controls k (fn [n _] n))
                          old-val (om/get-state owner [:inputs k :value])]
                      (om/set-state! owner [:inputs k :value] (coerce v old-val)))))
                (recur)))))
          om/IDidMount
          (did-mount
-           [_]
-           (handle-date-fields! owner d/default-fmt))
+          [_]
+          (handle-date-fields! owner d/default-fmt))
          om/IRenderState
          (render-state
-          [_ {:keys [chan inputs] :as state}]
+          [_ {:keys [chan inputs action-state] :as state}]
           (let [labels (comp-i18n owner comp-name schema)
                 title (get-in labels [:title])]
             (dom/div #js{:className "panel panel-default"}
@@ -396,9 +460,15 @@
                                                     (build-input owner (get k :k k) t labels opts)) schema)))
                                (dom/div #js {:className "panel-button"}
                                         (dom/input #js {:type  "button"
-                                               :className "btn btn-primary"
-                                               :value (label labels :action)
-                                               :onClick #(put! chan [:create inputs])}))
+                                                        :disabled (get-in state [:action :disabled])
+                                                        :className "btn btn-primary"
+                                                        :value (label labels :action)
+                                                        :onClick #(put! (om/get-state owner :action-chan) :action)})
+                                        (dom/input #js {:type  "button"
+                                                        :disabled false
+                                                        :className "btn btn-primary"
+                                                        :value "Nouveau"
+                                                        :onClick #(put! (om/get-state owner :new-chan) :new)}))
                                (dom/div #js {:className "description"} (desc labels :action)))))))))))
 
 

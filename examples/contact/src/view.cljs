@@ -39,7 +39,6 @@
   :create-person
   {:person/first-name (s/maybe s/Str)
    :person/name s/Str
-   :person/level (s/enum 1 2 3)
    :person/email s/Str
    :person/email-confirm s/Str
    :person/vat (s/Regex #"^[A-Z]{1,2}[0-9]{0,12}$")
@@ -49,16 +48,21 @@
    :person/gender (s/enum "M" "Ms")
    :person/married (s/eq true)}
    display-edn
-    {:init {:person/gender "Ms"
+    {:action {:one-shot true}
+     :init {:person/gender "Ms"
+            :person/vat "FR7589272"
             :person/size 187.50
-;;             :person/age 39.89
+            :person/age 40
             :person/birthdate (tomorrow)
-            ;:person/married true
+            :person/email "h@h"
+            :person/email-confirm "h@h"
+;;             :person/married true
             :person/name "MADELAINE"}
-     :order [:person/first-name :person/name :person/level :person/vat :person/email :person/email-confirm :person/gender :person/birthdate :person/age :person/size :person/married]
+     :order [:person/first-name :person/name :person/vat :person/email :person/email-confirm :person/gender :person/birthdate :person/age :person/size :person/married]
      :person/gender {:type "radio-group"}
+     :person/name {:attrs {:disabled true}}
      :person/age {:type "range"
-                  :attrs {:min "0" :max "5"}
+                  :attrs {:min "0" :max "100"}
                   :labeled true}
      :validations [
                    [:email [:person/email-confirm :person/email] :bad-email]
