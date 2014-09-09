@@ -1,3 +1,6 @@
+## 0.3.1-SNAPSHOT
+* EVOL Add 1-1 mode for validation.
+
 ## 0.2.9-SNAPSHOT
 
 * FIX Labeled inputs.
