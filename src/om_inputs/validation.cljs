@@ -117,7 +117,11 @@
 
 
 (def inter-fields-rules
-  #{:equal})
+  #{:equal
+    :greater
+    :lower
+    :greater-or-equal
+    :lower-or-equal})
 
 (defn error->rule
   "Build the map error->rule"
