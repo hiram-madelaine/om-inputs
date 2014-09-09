@@ -36,7 +36,8 @@
   (reduce
    (fn [acc [k v]]  (assoc acc (s/optional-key (get k :k k)) sch-i18n-field))
    {(s/optional-key :title) s/Str
-    (s/optional-key :action) sch-i18n-field-labels} sch))
+    (s/optional-key :action) sch-i18n-field-labels
+    (s/optional-key :clean) sch-i18n-field-labels} sch))
 
 
 (defn browser-lang
@@ -54,7 +55,8 @@
                          (merge
                           {s/Keyword sch-i18n-field}
                           {(s/optional-key :title) s/Str
-                           (s/optional-key :action) sch-i18n-field-labels}) })})
+                           (s/optional-key :action) sch-i18n-field-labels
+                           (s/optional-key :clean) sch-i18n-field-labels}) })})
 
 
 

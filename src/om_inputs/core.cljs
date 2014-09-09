@@ -240,6 +240,21 @@
         (dom/div #js {:className "description"} (:desc m)))))
 
 
+(defn button-view
+  [app owner {:keys [k labels] :as opts}]
+  (reify
+    om/IRenderState
+    (render-state [_ state]
+                  (let [chan-name (keyword (str (name k) "-chan"))
+                        chan (om/get-state owner chan-name)
+                        disabled (get-in state [:action-state k :disabled])
+                        btn-style (when disabled "disabled")]
+                    (dom/input #js {:type  "button"
+                                    :disabled disabled
+                                    :className (styles "btn btn-primary" btn-style)
+                                    :value (label labels k)
+                                    :onClick #(put! chan  k)})))))
+
 ;___________________________________________________________
 ;                                                           |
 ;        Syntactic sugar to access business state           |
@@ -333,8 +348,7 @@
                 :onChange #(put! chan [k (e-value %)])
                 :placeholder (ph i18n k)
                 :disabled (fdisabled inputs k)}
-         attrs (merge attrs (get-in opts [k :attrs]))
-         ]
+         attrs (merge attrs (get-in opts [k :attrs]))]
      (dom/div #js {:className (styles "form-group" input-style)}
               (dom/label #js {:htmlFor (full-name k)
                               :className (styles "control-label" required-style)}
@@ -351,15 +365,22 @@
                                                                    :init-state {:chan chan}}))))))))
 
 
-(s/defn ^:always-validate make-input-comp
+(s/defn ^:always-validate
+  make-input-comp
   "Build an input form Om component based on a prismatic/Schema"
-  ([comp-name
+  ([comp-name :- s/Keyword
     schema
     action]
-   (make-input-comp comp-name schema action {}))
+   (make-input-comp comp-name schema action nil {}))
   ([comp-name :- s/Keyword
     schema
     action
+    opts]
+  (make-input-comp comp-name schema action nil opts))
+  ([comp-name :- s/Keyword
+    schema
+    action
+    clean
     {:keys [validations init]  :as opts} :- SchOptions]
    (let [order (:order opts)
          verily-rules validations
@@ -370,7 +391,11 @@
          unit-validators (va/unit-schema-validators unit-coercers)
          remove-errs-fn (va/build-error-remover verily-rules va/inter-fields-rules)
          typing-controls (build-typing-control schema)
-         initial-bs (build-init-state schema init)]
+         initial-bs (build-init-state schema init)
+         initial-action-state {:action {:disabled false
+                                        :visible true}
+                               :clean {:disabled true
+                                       :visible false}}]
      (fn [app owner]
        (reify
          om/IDisplayName
@@ -384,7 +409,8 @@
            :action-chan (chan)
            :validation-chan (chan)
            :created-chan (chan)
-           :new-chan (chan)
+           :clean-chan (chan)
+           :action-state initial-action-state
            :inputs initial-bs
            :unit-coercers unit-coercers
            :unit-validators unit-validators
@@ -394,10 +420,11 @@
          om/IWillMount
          (will-mount
           [this]
-          (let [{:keys [chan action-chan validation-chan created-chan new-chan]} (om/get-state owner)]
+          (let [{:keys [chan action-chan validation-chan created-chan clean-chan]} (om/get-state owner)]
             (go
              (loop []
                (prn "init")
+               (om/set-state-nr! owner :action-state initial-action-state )
                (om/set-state! owner :inputs initial-bs)
                (loop []
                  (<! action-chan)
@@ -421,11 +448,14 @@
                (prn "L'action s'est déroulée avec succès !")
                (if (get-in opts [:action :one-shot])
                  (do
-                   (om/set-state-nr! owner [:action :disabled] true)
+                   (prn "one Shot !")
+                   (om/update-state-nr! owner [:action-state :action :disabled] not)
+                   (om/update-state-nr! owner [:action-state :clean :disabled] not)
                    (om/update-state! owner :inputs #(disable-all %)))
                  (recur))
-               (<! new-chan)
-               (om/set-state-nr! owner [:action :disabled] false)
+               (<! clean-chan)
+               (clean app owner "Cleaning")
+               (om/set-state-nr! owner [:action-state :action :disabled] false)
                (om/update-state-nr! owner :inputs #(enable-all %))
                (recur)))
             (go
@@ -442,33 +472,32 @@
          (did-mount
           [_]
           (handle-date-fields! owner d/default-fmt))
+         om/IWillUnmount
+         (will-unmount
+          [_]
+          (prn (str "WARNING : "  (full-name comp-name) " will unmount !")))
          om/IRenderState
          (render-state
           [_ {:keys [chan inputs action-state] :as state}]
           (let [labels (comp-i18n owner comp-name schema)
                 title (get-in labels [:title])]
-            (dom/div #js{:className "panel panel-default"}
+            (dom/div #js{:className "panel panel-default"
+                         :key (full-name comp-name)
+                         :ref (full-name comp-name)
+                         :id (full-name comp-name)}
                      (when title
                        (dom/div #js {:className "panel-heading"}
                                 (dom/h3 #js {:className "panel-title"} title)))
                      (dom/form #js {:className "panel-body"
                                     :role "form"}
                                (into-array (if order
-                                             (map (fn [k]
-                                                    (build-input owner k (su/get-sch schema k) labels opts)) order)
-                                             (map (fn [[k t]]
-                                                    (build-input owner (get k :k k) t labels opts)) schema)))
+                                             (map (fn [k] (build-input owner k (su/get-sch schema k) labels opts)) order)
+                                             (map (fn [[k t]] (build-input owner (get k :k k) t labels opts)) schema)))
                                (dom/div #js {:className "panel-button"}
-                                        (dom/input #js {:type  "button"
-                                                        :disabled (get-in state [:action :disabled])
-                                                        :className "btn btn-primary"
-                                                        :value (label labels :action)
-                                                        :onClick #(put! (om/get-state owner :action-chan) :action)})
-                                        (dom/input #js {:type  "button"
-                                                        :disabled false
-                                                        :className "btn btn-primary"
-                                                        :value "Nouveau"
-                                                        :onClick #(put! (om/get-state owner :new-chan) :new)}))
+                                        (om/build button-view app {:state state :opts {:k :action
+                                                                                       :labels labels}})
+                                        (om/build button-view app {:state state :opts {:k :clean
+                                                                                       :labels labels}}))
                                (dom/div #js {:className "description"} (desc labels :action)))))))))))
 
 

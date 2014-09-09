@@ -53,3 +53,8 @@
 .badge {
   margin-left : 2px;
 }
+
+.disabled {
+/*   display : none; */
+  visibility : hidden;
+}

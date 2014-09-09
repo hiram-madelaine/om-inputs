@@ -38,6 +38,7 @@
 (def input-view (make-input-comp
   :create-person
   {:person/first-name (s/maybe s/Str)
+   :person/immat (s/Regex )
    :person/name s/Str
    :person/email s/Str
    :person/email-confirm s/Str
@@ -48,21 +49,22 @@
    :person/gender (s/enum "M" "Ms")
    :person/married (s/eq true)}
    display-edn
+   display-edn
     {:action {:one-shot true}
-     :init {:person/gender "Ms"
+     :init {:person/gender "M"
             :person/vat "FR7589272"
             :person/size 187.50
-            :person/age 40
+            :person/age 1
             :person/birthdate (tomorrow)
             :person/email "h@h"
             :person/email-confirm "h@h"
-;;             :person/married true
+            :person/married false
             :person/name "MADELAINE"}
      :order [:person/first-name :person/name :person/vat :person/email :person/email-confirm :person/gender :person/birthdate :person/age :person/size :person/married]
      :person/gender {:type "radio-group"}
      :person/name {:attrs {:disabled true}}
      :person/age {:type "range"
-                  :attrs {:min "0" :max "100"}
+                  :attrs {:min "1" :max "5"}
                   :labeled true}
      :validations [
                    [:email [:person/email-confirm :person/email] :bad-email]
@@ -113,10 +115,12 @@
                                  :person-size-min-length "Trop court !"
                                  :bad-email "Cette adresse email est invalide"}
                         :create-person {:title "Creation du compte"
+                                        :clean {:label "Nouveau client"}
                                         :action {:label "Créer personne"
                                                  :desc "Nous n'allons pas débiter votre carte à cette étape."}
 
-                                        :person/age {:desc "Votre age véritable"}
+                                        :person/age {:label "Nombre de passagers"
+                                                     :desc "Votre age véritable"}
                                         :person/name {:label "Nom"}
                                         :person/vat {:label "TVA"
                                                      :desc "Charactères alphanumeriques"
