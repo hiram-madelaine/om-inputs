@@ -292,8 +292,8 @@
 (defn unit-dependant-verily-validation
   "Verily validation of a field that depend on other.
    The confirm password is a typical example."
-  [fk state]
-  (let [{:keys [inputs validation-deps verily-validator]} state
+  [fk inputs state]
+  (let [{:keys [validation-deps verily-validator]} state
          deps (fk validation-deps)
         ;coerced ((fk unit-coercers) bs)
         coerced (business-state->map inputs)
@@ -304,30 +304,46 @@
 
 (defn verily-validation
   "Verily validation of a single field"
-  [fk unit state]
+  [fk unit bs state]
   (let [{:keys [validation-deps]} state]
     (if (fk validation-deps)
-      (unit-dependant-verily-validation fk state)
+      (unit-dependant-verily-validation fk bs state)
       (unit-verily-validation fk unit state))))
 
 
 
 (defn field-validation
   "Validation of a single field"
-  [fk state]
-  (let [{:keys [inputs unit-validators]} state
+  [fk inputs state]
+  (let [{:keys [unit-validators]} state
         unit (bs->unit-map inputs fk)]
-    (when (validate? (fk inputs))
+    (if (validate? (fk inputs))
       (if-let [errs (or ((fk unit-validators) unit)
-                        (verily-validation fk unit state))]
+                        (verily-validation fk unit inputs state))]
         (add-field-error inputs errs)
-        (remove-field-error inputs fk)))))
+        (remove-field-error inputs fk))
+      inputs)))
 
 (defn field-validation!
   "Validate a single field of the local business state and update the local state."
   ([owner f]
-   (when-let [new-business-state (field-validation f (om/get-state owner))]
-     (om/set-state! owner [:inputs] new-business-state))))
+   (let [{:keys [inputs] :as state} (om/get-state owner)]
+    (let [new-business-state (field-validation f inputs state)]
+      (when (not= inputs new-business-state)
+       (om/set-state! owner [:inputs] new-business-state))))))
+
+
+(defn full-validation
+  [inputs state]
+  (reduce  (fn [bs f] (field-validation f bs state)) inputs (keys inputs)))
+
+
+(s/defn no-error? :- s/Bool
+  "Tells if there is at least one field in error."
+  [bs :- sch-business-state]
+  (not-any? (fn [[k v]]
+              (false? (:valid v))) bs))
+
 
 
 

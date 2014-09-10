@@ -1,4 +1,4 @@
-(defproject om-inputs "0.3.1-SNAPSHOT"
+(defproject om-inputs "0.3.2-SNAPSHOT"
   :description "Generate Web Input Form for Om/React.js, validation included."
   :url "https://github.com/hiram-madelaine/om-inputs"
 
@@ -9,7 +9,7 @@
                  [prismatic/dommy "0.1.2"]
                  [prismatic/schema "0.2.6"]
                  [com.facebook/react "0.11.1"]
-                 [jkkramer/verily "0.6.0"]]
+                 [jkkramer/verily "0.6.0-SNAPSHOT"]]
 
   :plugins [[lein-cljsbuild "1.0.4-SNAPSHOT"]
             [codox "0.8.10"]]

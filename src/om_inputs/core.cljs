@@ -1,5 +1,5 @@
 (ns om-inputs.core
-  (:require-macros [cljs.core.async.macros :refer [go]]
+  (:require-macros [cljs.core.async.macros :refer [go go-loop]]
                    [schema.macros :as s])
   (:require [om.core :as om :include-macros true]
             [om.dom :as dom :include-macros true]
@@ -200,22 +200,24 @@
   [app owner m]
   (reify
     om/IDidMount
-    (did-mount [this]
-               (let [tool (om/get-node owner (str (:k m) "-tooltip"))
-                     _ (count (.-textContent tool))
-                     elem (.getElementById js/document (full-name (:k m)))
-                     e (.getBoundingClientRect elem)]
-                 (set! (.-left (.-style tool)) (str (.-width e) "px"))))
+    (did-mount
+     [this]
+     (let [tool (om/get-node owner (str (:k m) "-tooltip"))
+           _ (count (.-textContent tool))
+           elem (.getElementById js/document (full-name (:k m)))
+           e (.getBoundingClientRect elem)]
+       (set! (.-left (.-style tool)) (str (.-width e) "px"))))
     om/IRenderState
-    (render-state [this {:keys [chan mess] :as state}]
-                  (dom/div #js {:className "popover right in"
-                                :role "alert"
-                                :ref (str (:k m) "-tooltip")}
-                           (dom/div #js {:className "arrow"} "")
-                           (dom/div #js {:className "popover-content"} mess
-                                    (dom/div #js {:type "button"
-                                                     :className "close"
-                                                     :onClick #(put! chan [:kill-mess (:k m)])} "x"))))))
+    (render-state
+     [this {:keys [chan mess] :as state}]
+     (dom/div #js {:className "popover right in"
+                   :role "alert"
+                   :ref (str (:k m) "-tooltip")}
+              (dom/div #js {:className "arrow"} "")
+              (dom/div #js {:className "popover-content"} mess
+                       (dom/div #js {:type "button"
+                                     :className "close"
+                                     :onClick #(put! chan [:kill-mess (:k m)])} "x"))))))
 
 
 
@@ -223,37 +225,40 @@
   "Display a dismissable error message"
   [app owner m]
   (reify om/IRenderState
-    (render-state [this {:keys [chan mess ] :as state}]
-                  (dom/div #js {:className "alert alert-danger"
-                                :role "alert"}
-                           (dom/button #js {:type "button"
-                                            :className "close"
-                                            :data-dismiss "alert"
-                                            :onClick #(put! chan [:kill-mess (:k m)])} "x")
-                           mess))))
+    (render-state
+     [this {:keys [chan mess ] :as state}]
+     (dom/div #js {:className "alert alert-danger"
+                   :role "alert"}
+              (dom/button #js {:type "button"
+                               :className "close"
+                               :data-dismiss "alert"
+                               :onClick #(put! chan [:kill-mess (:k m)])} "x")
+              mess))))
 
 (defn description
   "Display a small description under the label"
   [app owner m]
   (reify om/IRenderState
-    (render-state [_ state]
-        (dom/div #js {:className "description"} (:desc m)))))
+    (render-state
+     [_ state]
+     (dom/div #js {:className "description"} (:desc m)))))
 
 
 (defn button-view
   [app owner {:keys [k labels] :as opts}]
   (reify
     om/IRenderState
-    (render-state [_ state]
-                  (let [chan-name (keyword (str (name k) "-chan"))
-                        chan (om/get-state owner chan-name)
-                        disabled (get-in state [:action-state k :disabled])
-                        btn-style (when disabled "disabled")]
-                    (dom/input #js {:type  "button"
-                                    :disabled disabled
-                                    :className (styles "btn btn-primary" btn-style)
-                                    :value (label labels k)
-                                    :onClick #(put! chan  k)})))))
+    (render-state
+     [_ state]
+     (let [chan-name (keyword (str (name k) "-chan"))
+           chan (om/get-state owner chan-name)
+           disabled (get-in state [:action-state k :disabled])
+           btn-style (when disabled "disabled")]
+       (dom/input #js {:type  "button"
+                       :disabled disabled
+                       :className (styles "btn btn-primary" btn-style)
+                       :value (label labels k)
+                       :onClick #(put! chan  k)})))))
 
 ;___________________________________________________________
 ;                                                           |
@@ -392,10 +397,7 @@
          remove-errs-fn (va/build-error-remover verily-rules va/inter-fields-rules)
          typing-controls (build-typing-control schema)
          initial-bs (build-init-state schema init)
-         initial-action-state {:action {:disabled false
-                                        :visible true}
-                               :clean {:disabled true
-                                       :visible false}}]
+         initial-action-state {:action {:disabled false} :clean {:disabled true}}]
      (fn [app owner]
        (reify
          om/IDisplayName
@@ -421,43 +423,34 @@
          (will-mount
           [this]
           (let [{:keys [chan action-chan validation-chan created-chan clean-chan]} (om/get-state owner)]
-            (go
-             (loop []
-               (prn "init")
+            (go-loop []
                (om/set-state-nr! owner :action-state initial-action-state )
                (om/set-state! owner :inputs initial-bs)
                (loop []
                  (<! action-chan)
-                 (prn "let's validate first !")
+                   (let [{:keys [inputs] :as state} (om/get-state owner)
+                         new-bs (va/full-validation inputs state)]
+                     (om/set-state! owner [:inputs] new-bs)
+                     (if (va/no-error? new-bs)
+                       (put! validation-chan :validee)
+                       (recur))))
+               (<! validation-chan)
                  (let [v (om/get-state owner :inputs)
                        raw (va/pre-validation v)
                        coerced (schema-coercer raw)]
-                   (if-let [errs (or (checker raw) (validation coerced))]
-                     (do
-                       (om/set-state! owner [:inputs] (va/handle-errors v errs))
-                       (recur))
-                     (put! validation-chan :validee))))
-               (<! validation-chan)
-               (prn "validée, proceed to creation")
-               (let [v (om/get-state owner :inputs)
-                                 raw (va/pre-validation v)
-                                 coerced (schema-coercer raw)]
-                             (action app owner coerced)
-                             (put! created-chan [:created]))
+                   (action app owner coerced)
+                   (put! created-chan [:created]))
                (<! created-chan)
-               (prn "L'action s'est déroulée avec succès !")
-               (if (get-in opts [:action :one-shot])
-                 (do
-                   (prn "one Shot !")
-                   (om/update-state-nr! owner [:action-state :action :disabled] not)
-                   (om/update-state-nr! owner [:action-state :clean :disabled] not)
-                   (om/update-state! owner :inputs #(disable-all %)))
-                 (recur))
+                 (if (get-in opts [:action :one-shot])
+                   (do
+                     (om/update-state-nr! owner [:action-state :action :disabled] not)
+                     (om/update-state-nr! owner [:action-state :clean :disabled] not)
+                     (om/update-state! owner :inputs #(disable-all %)))
+                   (recur))
                (<! clean-chan)
-               (clean app owner "Cleaning")
-               (om/set-state-nr! owner [:action-state :action :disabled] false)
-               (om/update-state-nr! owner :inputs #(enable-all %))
-               (recur)))
+                 (om/set-state-nr! owner [:action-state :action :disabled] false)
+                 (om/update-state-nr! owner :inputs #(enable-all %))
+                 (recur))
             (go
              (loop []
                (let [[k v] (<! chan)]

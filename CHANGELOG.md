@@ -1,4 +1,9 @@
 ## 0.3.1-SNAPSHOT
+
+* FIX Complete validation on action bouton is now playing all unit validations
+
+## 0.3.1-SNAPSHOT
+
 * EVOL Add 1-1 mode for validation.
 
 ## 0.2.9-SNAPSHOT
