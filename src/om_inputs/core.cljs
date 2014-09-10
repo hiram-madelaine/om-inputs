@@ -245,7 +245,7 @@
 
 
 (defn button-view
-  [app owner {:keys [k labels] :as opts}]
+  [app owner {:keys [k labels comp-name] :as opts}]
   (reify
     om/IRenderState
     (render-state
@@ -255,6 +255,7 @@
            disabled (get-in state [:action-state k :disabled])
            btn-style (when disabled "disabled")]
        (dom/input #js {:type  "button"
+                       :id (str (full-name comp-name) "-" (name k))
                        :disabled disabled
                        :className (styles "btn btn-primary" btn-style)
                        :value (label labels k)
@@ -488,9 +489,11 @@
                                              (map (fn [[k t]] (build-input owner (get k :k k) t labels opts)) schema)))
                                (dom/div #js {:className "panel-button"}
                                         (om/build button-view app {:state state :opts {:k :action
-                                                                                       :labels labels}})
+                                                                                       :labels labels
+                                                                                       :comp-name comp-name}})
                                         (om/build button-view app {:state state :opts {:k :clean
-                                                                                       :labels labels}}))
+                                                                                       :labels labels
+                                                                                       :comp-name comp-name}}))
                                (dom/div #js {:className "description"} (desc labels :action)))))))))))
 
 
