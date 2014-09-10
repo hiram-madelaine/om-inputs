@@ -1,6 +1,7 @@
 ## 0.3.1-SNAPSHOT
 
 * FIX Complete validation on action bouton is now playing all unit validations
+* ADD id for action and clean button comp-name-[action|clean]
 
 ## 0.3.1-SNAPSHOT
 
