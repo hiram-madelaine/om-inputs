@@ -449,6 +449,7 @@
                      (om/update-state! owner :inputs #(disable-all %)))
                    (recur))
                (<! clean-chan)
+                 (clean app owner)
                  (om/set-state-nr! owner [:action-state :action :disabled] false)
                  (om/update-state-nr! owner :inputs #(enable-all %))
                  (recur))

@@ -2,6 +2,8 @@
 
 * FIX Complete validation on action bouton is now playing all unit validations
 * ADD id for action and clean button comp-name-[action|clean]
+* FIX clean function was not called.
+
 
 ## 0.3.1-SNAPSHOT
 
