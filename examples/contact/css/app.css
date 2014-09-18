@@ -58,3 +58,11 @@
   display : none;
 /*   visibility : hidden; */
 }
+#create-person-action {
+  color : red;
+}
+
+#create-person-clean {
+  display : none;
+}
+

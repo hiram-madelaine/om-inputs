@@ -52,7 +52,9 @@
    :person/married (s/eq true)}
    display-edn
    display-edn
-    {:action {:one-shot true}
+    {:action {:one-shot false
+              :no-reset true
+              }
      :init {:person/gender "M"
             :person/date-aller (at 0)
             :person/vat "FR7589272"

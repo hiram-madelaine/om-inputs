@@ -426,7 +426,7 @@
           (let [{:keys [chan action-chan validation-chan created-chan clean-chan]} (om/get-state owner)]
             (go-loop []
                (om/set-state-nr! owner :action-state initial-action-state )
-               (om/set-state! owner :inputs initial-bs)
+               (when-not (get-in opts [:action :no-reset])(om/set-state! owner :inputs initial-bs))
                (loop []
                  (<! action-chan)
                    (let [{:keys [inputs] :as state} (om/get-state owner)

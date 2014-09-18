@@ -1,3 +1,7 @@
+## 0.3.3-SNAPSHOT
+
+* ADD flag no-reset to keep last values instead of initial values
+
 ## 0.3.2-SNAPSHOT
 
 * FIX Complete validation on action bouton is now playing all unit validations

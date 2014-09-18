@@ -44,7 +44,8 @@
   {(s/optional-key :order) [sch-field]
    (s/optional-key :init) {sch-field s/Any}
    (s/optional-key :validations) s/Any
-   (s/optional-key :action) {(s/optional-key :one-shot) s/Bool}
+   (s/optional-key :action) {(s/optional-key :one-shot) s/Bool
+                             (s/optional-key :no-reset) s/Bool}
    s/Keyword {(s/optional-key :type) s/Str
               (s/optional-key :labeled) s/Bool
               (s/optional-key :attrs) s/Any}})
