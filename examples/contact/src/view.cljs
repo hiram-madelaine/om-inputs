@@ -56,7 +56,7 @@
               :no-reset true
               }
      :init {:person/gender "M"
-            :person/date-aller (at 0)
+;;             :person/date-aller (at 0)
             :person/vat "FR7589272"
             :person/size 187.50
             :person/age 1
@@ -67,6 +67,9 @@
             :person/name "MADELAINE"}
      :order [:person/date-aller  :person/date-retour :person/first-name :person/name :person/vat :person/email :person/email-confirm :person/gender :person/birthdate :person/age :person/size :person/married]
      :person/gender {:type "radio-group"}
+     :person/date-aller {:type "now"
+                         :labeled true}
+     :person/date-retour {:labeled true}
      :person/age {:type "range"
                   :attrs {:min "1" :max "5"}
                   :labeled true}

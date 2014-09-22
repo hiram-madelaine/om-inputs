@@ -99,6 +99,14 @@
  [{:keys [k attrs data]}]
   (dom/input (clj->js (merge {:type "range"} attrs))))
 
+(defmethod magic-input "now"
+  [{:keys [k attrs data chan]}]
+  (dom/input (clj->js (merge attrs {:type "button"
+                                    :className "btn"
+                                    :preventDefault true
+                                    :onClick #(put! chan [k (js/Date.)])})) "Now"))
+
+
 (defmethod magic-input :default
   [{:keys [k attrs]}]
   (dom/input (clj->js attrs)))
@@ -178,11 +186,11 @@
 
 
 (defn handle-date-fields!
-  [owner f]
+  [owner f opts]
   (let [chan (om/get-state owner :chan)
         state (om/get-state owner :inputs)
         date-fieds (for [[k {:keys [type]}] state
-                         :when (= s/Inst type)]
+                         :when (and (= s/Inst type) (not= "now" (get-in opts [k :type])))]
                      k)]
     (doseq [k date-fieds]
       (add-date-picker! k (om/get-node owner (full-name k)) chan f))))
@@ -466,7 +474,7 @@
          om/IDidMount
          (did-mount
           [_]
-          (handle-date-fields! owner d/default-fmt))
+          (handle-date-fields! owner d/default-fmt opts))
          om/IWillUnmount
          (will-unmount
           [_]

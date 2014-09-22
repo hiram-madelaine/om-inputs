@@ -1,3 +1,7 @@
+## 0.3.4-SNAPSHOT
+
+* ADD Experimental "now" to capture real time occurence for s/inst
+
 ## 0.3.3-SNAPSHOT
 
 * ADD flag no-reset to keep last values instead of initial values
