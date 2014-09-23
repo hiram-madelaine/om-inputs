@@ -1,6 +1,7 @@
 ## 0.3.4-SNAPSHOT
 
 * ADD Experimental "now" to capture real time occurence for s/inst
+* ADD Possibility to alter opts dynamically via :dyn-opts in root local state. Merge with init opts during render phase.
 
 ## 0.3.3-SNAPSHOT
 

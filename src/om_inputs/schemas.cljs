@@ -48,4 +48,5 @@
                              (s/optional-key :no-reset) s/Bool}
    s/Keyword {(s/optional-key :type) s/Str
               (s/optional-key :labeled) s/Bool
-              (s/optional-key :attrs) s/Any}})
+              (s/optional-key :attrs) s/Any
+              (s/optional-key :className) s/Str}})

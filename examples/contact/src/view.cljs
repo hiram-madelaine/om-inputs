@@ -52,7 +52,8 @@
    :person/married (s/eq true)}
    display-edn
    display-edn
-    {:action {:one-shot false
+    {:create-person {:className "visible"}
+     :action {:one-shot false
               :no-reset true
               }
      :init {:person/gender "M"
@@ -84,12 +85,15 @@
     om/IInitState
     (init-state
      [this]
-     {:lang "fr"})
+     {:lang "fr"
+      :create-person {}})
     om/IRenderState
     (render-state
      [this state]
      (dom/div #js {:className "container"}
-       (dom/div #js {}
+       (dom/input #js {:type "button"
+                       :onClick #(om/set-state! owner [:dyn-opts :person/date-retour :type] "now")})
+              (dom/div #js {}
               (dom/a #js {:href "#"} (dom/img #js {:src "img/fr.png" :className "flag" :onClick #(om/set-state! owner [:lang] "fr")}))
               (dom/a #js {:href "#"} (dom/img #js {:src "img/gb.png" :className "flag" :onClick #(om/set-state! owner [:lang] "en")})))
       (om/build input-view app {:state state})))))

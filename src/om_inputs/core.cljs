@@ -104,7 +104,7 @@
   (dom/input (clj->js (merge attrs {:type "button"
                                     :className "btn"
                                     :preventDefault true
-                                    :onClick #(put! chan [k (js/Date.)])})) "Now"))
+                                    :onClick #(put! chan [k (js/Date.)])}))))
 
 
 (defmethod magic-input :default
@@ -416,7 +416,8 @@
          om/IInitState
          (init-state
           [_]
-          {:chan (chan)
+          {:opts opts
+           :chan (chan)
            :action-chan (chan)
            :validation-chan (chan)
            :created-chan (chan)
@@ -481,10 +482,12 @@
           (prn (str "WARNING : "  (full-name comp-name) " will unmount !")))
          om/IRenderState
          (render-state
-          [_ {:keys [chan inputs action-state] :as state}]
+          [_ {:keys [chan inputs action-state dyn-opts] :as state}]
           (let [labels (comp-i18n owner comp-name schema)
-                title (get-in labels [:title])]
-            (dom/div #js{:className "panel panel-default"
+                title (get-in labels [:title])
+                opts (merge opts dyn-opts)
+                comp-class (get-in opts [comp-name :className])]
+            (dom/div #js{:className (styles "panel panel-default" comp-class)
                          :key (full-name comp-name)
                          :ref (full-name comp-name)
                          :id (full-name comp-name)}
