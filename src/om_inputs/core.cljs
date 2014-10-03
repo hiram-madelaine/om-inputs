@@ -484,7 +484,8 @@
          om/IWillReceiveProps
          (will-receive-props
           [this next-props]
-          (willReceivePropsFn owner next-props))
+          (when willReceivePropsFn
+           (willReceivePropsFn owner next-props)))
          om/IWillUpdate
          (will-update
           [this next-props next-state])
