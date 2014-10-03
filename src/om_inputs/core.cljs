@@ -406,7 +406,8 @@
          remove-errs-fn (va/build-error-remover verily-rules va/inter-fields-rules)
          typing-controls (build-typing-control schema)
          initial-bs (build-init-state schema init)
-         initial-action-state {:action {:disabled false} :clean {:disabled true}}]
+         initial-action-state {:action {:disabled false} :clean {:disabled true}}
+         willReceivePropsFn (:IWillReceiveProps opts)]
      (fn [app owner]
        (reify
          om/IDisplayName
@@ -480,12 +481,19 @@
          (will-unmount
           [_]
           (prn (str "WARNING : "  (full-name comp-name) " will unmount !")))
+         om/IWillReceiveProps
+         (will-receive-props
+          [this next-props]
+          (willReceivePropsFn owner next-props))
+         om/IWillUpdate
+         (will-update
+          [this next-props next-state])
          om/IRenderState
          (render-state
           [_ {:keys [chan inputs action-state dyn-opts] :as state}]
           (let [labels (comp-i18n owner comp-name schema)
                 title (get-in labels [:title])
-                opts (merge opts dyn-opts)
+                opts (merge-with merge opts dyn-opts)
                 comp-class (get-in opts [comp-name :className])]
             (dom/div #js{:className (styles "panel panel-default" comp-class)
                          :key (full-name comp-name)

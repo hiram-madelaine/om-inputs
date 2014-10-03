@@ -2,7 +2,7 @@
 
 * ADD Experimental "now" to capture real time occurence for s/inst
 * ADD Possibility to alter opts dynamically via :dyn-opts in root local state. Merge with init opts during render phase.
-
+* ADD Possibility to add hooks to lifecycle methods. First is IWillReceiveProps. Add :IWillReceiveProps and (fn [owner next-props]) to the options map.
 ## 0.3.3-SNAPSHOT
 
 * ADD flag no-reset to keep last values instead of initial values

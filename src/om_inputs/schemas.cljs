@@ -41,7 +41,8 @@
 
 
 (def SchOptions
-  {(s/optional-key :order) [sch-field]
+  {(s/optional-key :IWillReceiveProps) s/Any
+   (s/optional-key :order) [sch-field]
    (s/optional-key :init) {sch-field s/Any}
    (s/optional-key :validations) s/Any
    (s/optional-key :action) {(s/optional-key :one-shot) s/Bool
