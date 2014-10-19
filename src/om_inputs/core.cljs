@@ -1,11 +1,10 @@
 (ns om-inputs.core
-  (:require-macros [cljs.core.async.macros :refer [go go-loop]]
-                   [schema.macros :as s])
+  (:require-macros [cljs.core.async.macros :refer [go go-loop]])
   (:require [om.core :as om :include-macros true]
             [om.dom :as dom :include-macros true]
             [cljs.core.async :refer [chan put! >! <! alts!]]
             [cljs.core.async.impl.channels :refer [ManyToManyChannel]]
-            [schema.core :as s]
+            [schema.core :as s :include-macros true]
             [schema.coerce :as coerce]
             [clojure.string :as str]
             [om-inputs.utils :refer [full-name]]
@@ -13,7 +12,7 @@
             [om-inputs.schema-utils :as su :refer [sch-type]]
             [om-inputs.schemas :refer [sch-business-state sch-field-state SchOptions]]
             [om-inputs.validation :as va]
-            [om-inputs.i18n :refer [comp-i18n label desc desc? data error ph]]
+            [om-inputs.i18n :refer [comp-i18n label desc desc? data error ph info]]
             [om-inputs.typing-controls :refer [build-typing-control]]
             [jkkramer.verily :as v]
             [goog.events]))
@@ -39,7 +38,7 @@
 
 ;___________________________________________________________
 ;                                                           |
-;          Mulitmethod to handle different inputs form      |
+;          Multimethod to handle different inputs form      |
 ;___________________________________________________________|
 
 
@@ -59,19 +58,28 @@
                                                          code)))) (:vs t))))
 
 
-(defmethod magic-input "radio-group"
-  [{:keys [k t data attrs chan]}]
+(defn radio-group
+  [style {:keys [k t data attrs chan]}]
   (apply dom/div #js {:className "input-group"}
            (map (fn [code]
-                  (dom/div #js {:className "radio"}
-                           (dom/input  (clj->js (merge attrs {:type "radio"
-                                                              :checked (= (:value attrs) code)
-                                                              :className ""
-                                                              :id (full-name k)
-                                                              :name (full-name k)
-                                                              :value code
-                                                              :onClick #(put! chan [k code])} )))
-                           (get-in data [code :label] (if (keyword? code) (full-name code) code)))) (:vs t))))
+                  (dom/div #js {:className style}
+                           (dom/label #js {}
+                                      (dom/input  (clj->js (merge attrs {:type "radio"
+                                                                         :checked (= (:value attrs) code)
+                                                                         :className ""
+                                                                         :id (full-name k)
+                                                                         :name (full-name k)
+                                                                         :value code
+                                                                         :onClick #(put! chan [k code])} )))
+                                      (get-in data [code :label] (if (keyword? code) (full-name code) code))))) (:vs t))))
+
+(defmethod magic-input "radio-group"
+  [m]
+  (radio-group "radio" m))
+
+(defmethod magic-input "radio-group-inline"
+  [m]
+  (radio-group "radio-inline" m))
 
 
 (defmethod magic-input s/Inst
@@ -172,6 +180,11 @@
    (build-init-state sch {})))
 
 
+;___________________________________________________________
+;                                                           |
+;                 Decorate s/inst fields                    |
+;___________________________________________________________|
+
 
 
 (defn add-date-picker!
@@ -190,7 +203,8 @@
   (let [chan (om/get-state owner :chan)
         state (om/get-state owner :inputs)
         date-fieds (for [[k {:keys [type]}] state
-                         :when (and (= s/Inst type) (not= "now" (get-in opts [k :type])))]
+                         :when (and (= s/Inst type)
+                                    (not= "now" (get-in opts [k :type])))]
                      k)]
     (doseq [k date-fieds]
       (add-date-picker! k (om/get-node owner (full-name k)) chan f))))
@@ -204,28 +218,34 @@
 
 
 (defn tooltip
-  "Display a tooltip next to the field"
+  "Display a tooltip next to the field to inform the user.
+  options :
+  :k the target field
+  :type serves to build the css class tooltip-type
+  "
   [app owner m]
   (reify
     om/IDidMount
     (did-mount
      [this]
      (let [tool (om/get-node owner (str (:k m) "-tooltip"))
-           _ (count (.-textContent tool))
            elem (.getElementById js/document (full-name (:k m)))
-           e (.getBoundingClientRect elem)]
-       (set! (.-left (.-style tool)) (str (.-width e) "px"))))
-    om/IRenderState
-    (render-state
-     [this {:keys [chan mess] :as state}]
-     (dom/div #js {:className "popover right in"
+           rect-tool (.getBoundingClientRect tool)
+           rect (.getBoundingClientRect elem)
+           delta (* 0.5 (- (.-height rect) (.-height rect-tool)))]
+       (set! (.-left (.-style tool)) (str (.-width rect) "px"))
+       (set! (.-top (.-style tool)) (str delta "px"))))
+    om/IRender
+    (render
+     [this]
+     (dom/div #js {:className (styles "popover right in" (str "popover-" (:type m)))
                    :role "alert"
                    :ref (str (:k m) "-tooltip")}
               (dom/div #js {:className "arrow"} "")
-              (dom/div #js {:className "popover-content"} mess
+              (dom/div #js {:className "popover-content"} (:mess app)
                        (dom/div #js {:type "button"
                                      :className "close"
-                                     :onClick #(put! chan [:kill-mess (:k m)])} "x"))))))
+                                     :onClick (:action m)} "x"))))))
 
 
 
@@ -246,10 +266,8 @@
 (defn description
   "Display a small description under the label"
   [app owner m]
-  (reify om/IRenderState
-    (render-state
-     [_ state]
-     (dom/div #js {:className "description"} (:desc m)))))
+  (om/component
+   (dom/div #js {:className "description"} (:desc m))))
 
 
 (defn button-view
@@ -260,14 +278,19 @@
      [_ state]
      (let [chan-name (keyword (str (name k) "-chan"))
            chan (om/get-state owner chan-name)
-           disabled (get-in state [:action-state k :disabled])
-           btn-style (when disabled "disabled")]
-       (dom/input #js {:type  "button"
-                       :id (str (full-name comp-name) "-" (name k))
-                       :disabled disabled
-                       :className (styles "btn btn-primary" btn-style)
-                       :value (label labels k)
-                       :onClick #(put! chan  k)})))))
+           state (get-in state [:action-state k])
+           btn-style (name state)]
+       (dom/div nil
+                (dom/button #js {:type  "button"
+                                 :id (str (full-name comp-name) "-" (name k))
+                                 :disabled (= "disabled" btn-style)
+                                 :className (styles "btn btn-primary has-spinner has-error" btn-style)
+                                 :onClick #(put! chan  k)}
+                           (label labels k)
+                            (dom/span #js {:className "error"}
+                                     (dom/i #js {:className "fa fa-ban text-danger"}))
+                            (dom/span #js {:className "spinner"}
+                                     (dom/i #js {:className "fa fa-spin fa-cog"}))))))))
 
 ;___________________________________________________________
 ;                                                           |
@@ -303,6 +326,10 @@
 (s/defn fdisabled :- (s/maybe s/Bool)
   [m k]
   (get-in-bs m k :disabled))
+
+(defn ffocus
+  [m k]
+  (get-in-bs m k :focus))
 
 ;___________________________________________________________
 ;                                                           |
@@ -358,7 +385,10 @@
                 :ref (full-name k)
                 :className "form-control"
                 :value (fvalue inputs k)
-                :onBlur #(put! chan [:validate k])
+                :onBlur #(do
+                           (put! chan [:focus k])
+                          (put! chan [:validate k]))
+                :onFocus #(put! chan [:focus k])
                 :onChange #(put! chan [k (e-value %)])
                 :placeholder (ph i18n k)
                 :disabled (fdisabled inputs k)}
@@ -372,12 +402,24 @@
 
               (dom/div #js {:className "input-container"}
                        (magic-input {:k k :t t :attrs attrs :chan chan :opts opts :data (data i18n k)})
+                       (when (and (info i18n k) (ffocus inputs k))
+                         (om/build tooltip {:mess (info i18n k)} {:opts {:k k
+                                                                        :type "info"}}))
                        (let [mess (error full-i18n err-k)]
                          (when (and invalid mess)
-                           (om/build tooltip (om/get-props owner) {:opts {:k k}
-                                                                   :state {:mess mess}
-                                                                   :init-state {:chan chan}}))))))))
+                           (om/build tooltip {:mess mess} {:opts {:k k
+                                                                          :type "error"
+                                                                          :action #(put! chan [:kill-mess k])}
+                                                                   :state {:mess mess}}))))))))
+(def action-states
+  {:init :active
+   :in-error :active
+   :active :disabled
+   :disabled :init})
 
+(def error-flow
+  {:init :in-error
+   :in-error :in-error})
 
 (s/defn ^:always-validate
   make-input-comp
@@ -395,7 +437,7 @@
     schema
     action
     clean
-    {:keys [validations init]  :as opts} :- SchOptions]
+    {:keys [validations init] :as opts} :- SchOptions]
    (let [order (:order opts)
          verily-rules validations
          schema-coercer (coerce/coercer schema va/validation-coercer)
@@ -406,7 +448,7 @@
          remove-errs-fn (va/build-error-remover verily-rules va/inter-fields-rules)
          typing-controls (build-typing-control schema)
          initial-bs (build-init-state schema init)
-         initial-action-state {:action {:disabled false} :clean {:disabled true}}
+         initial-action-state {:action :init :clean :disabled}
          willReceivePropsFn (:IWillReceiveProps opts)]
      (fn [app owner]
        (reify
@@ -435,8 +477,8 @@
           [this]
           (let [{:keys [chan action-chan validation-chan created-chan clean-chan]} (om/get-state owner)]
             (go-loop []
-               (om/set-state-nr! owner :action-state initial-action-state )
                (when-not (get-in opts [:action :no-reset])(om/set-state! owner :inputs initial-bs))
+                     (om/set-state! owner :action-state initial-action-state )
                (loop []
                  (<! action-chan)
                    (let [{:keys [inputs] :as state} (om/get-state owner)
@@ -444,29 +486,42 @@
                      (om/set-state! owner [:inputs] new-bs)
                      (if (va/no-error? new-bs)
                        (put! validation-chan :validee)
-                       (recur))))
+                       (do
+                         (om/update-state! owner [:action-state :action] error-flow)
+                         (recur)))))
                (<! validation-chan)
                  (let [v (om/get-state owner :inputs)
                        raw (va/pre-validation v)
                        coerced (schema-coercer raw)]
-                   (action app owner coerced)
-                   (put! created-chan [:created]))
-               (<! created-chan)
-                 (if (get-in opts [:action :one-shot])
-                   (do
-                     (om/update-state-nr! owner [:action-state :action :disabled] not)
-                     (om/update-state-nr! owner [:action-state :clean :disabled] not)
-                     (om/update-state! owner :inputs #(disable-all %)))
-                   (recur))
+                   (om/update-state! owner [:action-state :action] action-states)
+                   (if (get-in opts [:action :async])
+                     (action app owner coerced created-chan)
+                     (try
+                         (action app owner coerced)
+                         (put! created-chan [:ok])
+                         (catch js/Object e
+                           (put! created-chan [:ko e])))))
+                     (let [[v m]  (<! created-chan)]
+                       (if (= :ko v)
+                         (do
+                           (prn (str "An error has occured during action : " m))
+                           (recur))
+                         (if (get-in opts [:action :one-shot])
+                           (do
+                             (om/update-state-nr! owner [:action-state :action] action-states)
+                             (om/update-state-nr! owner [:action-state :clean] action-states)
+                             (om/update-state! owner :inputs #(disable-all %)))
+                           (recur))))
                (<! clean-chan)
                  (clean app owner)
-                 (om/set-state-nr! owner [:action-state :action :disabled] false)
+                 (om/update-state-nr! owner [:action-state :action] action-states)
                  (om/update-state-nr! owner :inputs #(enable-all %))
                  (recur))
             (go
              (loop []
                (let [[k v] (<! chan)]
                  (condp = k
+                   :focus (om/update-state! owner [:inputs v :focus] not)
                    :kill-mess (om/update-state! owner [:inputs v] #(dissoc % :error) )
                    :validate (va/field-validation! owner v)
                    (let [coerce (get typing-controls k (fn [n _] n))

@@ -1,6 +1,5 @@
 (ns om-inputs.schema-utils
-  (:require-macros [schema.macros :as s])
-  (:require  [schema.core :as s]
+  (:require  [schema.core :as s :include-macros true]
              [schema.coerce :as coerce]))
 
 
@@ -35,6 +34,4 @@
     schema.core.EqSchema (type (:v t))
     js/Function t
     "other"))
-
-
 

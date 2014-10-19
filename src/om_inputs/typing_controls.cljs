@@ -1,7 +1,8 @@
 (ns om-inputs.typing-controls
   (:require [clojure.string :as str]
-            [schema.core :as s]
-            [om-inputs.schema-utils :refer [sch-type]]))
+            [schema.core :as s :include-macros true]
+            [om-inputs.schema-utils :refer [sch-type]]
+            [goog.string :as gstr]))
 
 
 ;_________________________________________________
@@ -39,6 +40,7 @@
 
 (def typing-control-fns
   {integer? (fnil only-integer "" "")
+;;    string? #(gstr/htmlEscape %)
   ; js/Date parse-date ;Let schema coercion deal with data coercion
    js/Number (fnil only-number "" "")})
 

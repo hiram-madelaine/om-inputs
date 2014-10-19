@@ -1,7 +1,6 @@
 (ns om-inputs.i18n
   "Handle all the aspectd related to the i18n of the components."
-  (:require-macros [schema.macros :as s])
-  (:require  [schema.core :as s]
+  (:require  [schema.core :as s :include-macros true]
              [clojure.string :as str]
              [om.core :as om :include-macros true]
              [om-inputs.utils :refer [full-name]]))
@@ -14,7 +13,8 @@
 
 (def sch-i18n-field-labels {(s/optional-key :label) s/Str
                             (s/optional-key :desc) s/Str
-                            (s/optional-key :ph) s/Str})
+                            (s/optional-key :ph) s/Str
+                            (s/optional-key :info) s/Str})
 
 (def sch-i18n-enum-labels {(s/optional-key :data) {s/Any sch-i18n-field-labels}})
 
@@ -123,3 +123,7 @@
 (defn ph
   [i18n k]
   (get-in i18n [k :ph]))
+
+(defn info
+  [i18n k]
+  (get-in i18n [k :info]))

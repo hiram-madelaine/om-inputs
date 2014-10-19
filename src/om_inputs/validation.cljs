@@ -1,11 +1,10 @@
 (ns om-inputs.validation
-  (:require-macros [cljs.core.async.macros :refer [go]]
-                   [schema.macros :as s])
+  (:require-macros [cljs.core.async.macros :refer [go]])
   (:require [om.core :as om :include-macros true]
             [clojure.set :as st]
             [clojure.string :as str]
             [jkkramer.verily :as v]
-            [schema.core :as s]
+            [schema.core :as s :include-macros true]
             [schema.coerce :as coerce]
             [om-inputs.schemas :as su :refer [ sch-field sch-business-state sch-field-state]]
             [om-inputs.date-utils :as d]))

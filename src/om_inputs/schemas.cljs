@@ -1,5 +1,5 @@
 (ns om-inputs.schemas
-  (:require [schema.core :as s]
+  (:require [schema.core :as s :include-macros true]
             [cljs.core.async.impl.channels :refer [ManyToManyChannel]]))
 
 
@@ -18,6 +18,7 @@
   {:value                  s/Any
    :required               s/Bool
    :type                   s/Any
+   (s/optional-key :focus) s/Bool
    (s/optional-key :valid) s/Bool
    (s/optional-key :error) [s/Keyword]
    (s/optional-key :disabled) s/Bool})
@@ -46,7 +47,8 @@
    (s/optional-key :init) {sch-field s/Any}
    (s/optional-key :validations) s/Any
    (s/optional-key :action) {(s/optional-key :one-shot) s/Bool
-                             (s/optional-key :no-reset) s/Bool}
+                             (s/optional-key :no-reset) s/Bool
+                             (s/optional-key :async) s/Bool}
    s/Keyword {(s/optional-key :type) s/Str
               (s/optional-key :labeled) s/Bool
               (s/optional-key :attrs) s/Any

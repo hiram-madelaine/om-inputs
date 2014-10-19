@@ -1,3 +1,10 @@
+## 0.3.5-SNAPSHOT
+
+* ADD Experimental handling of asynchroneous action. New options {:action {:async true}}. The callback accepts a fourth argument that is the channel. The callback must put! :ok or :ko at the end.
+* ADD the possibility to inline radio-group with the new type "radio-group-inline"
+* FIX Position of toolip messages
+* ADD Tooltip for info. In i18N add :info to a field.
+
 ## 0.3.4-SNAPSHOT
 
 * ADD Experimental "now" to capture real time occurence for s/inst

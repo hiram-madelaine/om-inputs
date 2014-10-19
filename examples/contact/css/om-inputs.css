@@ -1,0 +1,71 @@
+
+.required::before {
+  content : "* ";
+  color : #a94442;
+}
+
+
+.optional::after {
+  content : " (Option)";
+  color : grey;
+  font-size : 0.75em;
+}
+
+
+.popover {
+
+  display : block; /*By default the Boostrap popover is hidden */
+  width : 300px;
+}
+
+.popover-error {
+  color : #a94442;
+}
+
+
+.popover-info {
+  color : blue;
+}
+
+.input-container {
+
+  position : relative;/* This is important to position the tooltip in the middle of the input*/
+}
+
+.badge {
+  margin-left : 2px;
+}
+
+.description {
+  font-size : 0.75em;
+   color : grey;
+}
+
+
+.spinner, .error {
+  display: inline-block;
+  opacity: 0;
+  max-width: 0;
+
+  -webkit-transition: opacity 0.25s, max-width 0.45s;
+  -moz-transition: opacity 0.25s, max-width 0.45s;
+  -o-transition: opacity 0.25s, max-width 0.45s;
+  transition: opacity 0.25s, max-width 0.45s; /* Duration fixed since we animate additional hidden width */
+}
+
+.has-spinner.active {
+  cursor:progress;
+}
+
+.has-error.in-error .error,
+.has-spinner.active .spinner {
+  margin-left : 5px;
+  opacity: 1;
+  max-width: 50px; /* More than it will ever come, notice that this affects on animation duration */
+}
+
+
+
+
+
+

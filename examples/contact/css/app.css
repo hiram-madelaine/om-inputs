@@ -11,33 +11,7 @@
  #background-color : #DDD;
 }
 
-.description {
-  font-size : 0.75em;
-   color : grey;
-}
 
-
-.required::before {
-  content : "* ";
-  color : #a94442;
-}
-
-
-.optional::after {
-  content : " (Option)";
-  color : grey;
-  font-size : 0.75em;
-}
-
-
-.popover {
-
-  display : block; /*By default the Boostrap popover is hidden */
-  color : #a94442;
-  width : 300px;
-  color: #a94442;
-
-}
 
 
 .input-container {
@@ -50,19 +24,28 @@
   padding : 1px;
 }
 
-.badge {
-  margin-left : 2px;
-}
 
 .disabled {
-  display : none;
+  color : darkgrey;
+/*   display : none; */
 /*   visibility : hidden; */
 }
+
+
+
+
 #create-person-action {
-  color : red;
+
 }
 
 #create-person-clean {
-  display : none;
+
 }
+
+
+
+
+
+
+
 

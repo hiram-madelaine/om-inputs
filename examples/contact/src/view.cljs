@@ -1,11 +1,20 @@
 (ns om-inputs.view
+  (:require-macros [cljs.core.async.macros :refer [go]])
   (:require
    [om.core :as om :include-macros true]
    [om.dom :as dom :include-macros true]
+   [cljs.core.async :refer [chan timeout put! >! <! alts! close!]]
    [om-inputs.core :as in :refer [build-input make-input-comp]]
    [clojure.string :as str]
    [schema.core :as s]
-   [om-inputs.date-utils :refer  [at tomorrow]]))
+   [om-inputs.date-utils :refer  [at tomorrow]]
+   [goog.net.XhrIo :as xhr]
+    [cljs.reader :as reader]
+            [goog.events :as events])
+   (:import [goog.net XhrIo]
+           goog.net.EventType
+           [goog.events EventType]
+           [goog.ui IdGenerator]))
 
 
 (def lang-sch {:lang (s/enum "en" "fr")})
@@ -16,6 +25,39 @@
 
 (defn display-edn [_ _ edn]
   (js/alert edn))
+
+;___________________________________________________________
+;                                                           |
+;        XhrIo call                                         |
+;___________________________________________________________|
+
+(def ^:private meths
+  {:get "GET"
+   :put "PUT"
+   :post "POST"
+   :delete "DELETE"})
+
+(defn edn-xhr [{:keys [method url data on-complete on-error]}]
+  (let [xhr (XhrIo.)
+        _ (println data)]
+    (events/listen xhr goog.net.EventType.SUCCESS
+      (fn [e]
+        (on-complete (.getResponseText xhr))))
+    (events/listen xhr goog.net.EventType.ERROR
+      (fn [e]
+        (on-error (.getResponseText xhr))))
+    (.send xhr url)))
+
+(defn async-action
+  [app owner value out]
+  (edn-xhr {:method :get
+            :url "https://api.github.com/users/hiram-madelaine/repos"
+            :on-complete (fn [e]
+                           (prn e)
+                           (go (<! (timeout 2000))
+                               (>! out [:ok])))
+            :on-error (fn [e]
+                        (put! out [:ko "Fuck an error"]))}))
 
 
 #_(om/root
@@ -50,12 +92,27 @@
    :person/age  (s/named s/Int "age")
    :person/gender (s/enum "M" "Ms")
    :person/married (s/eq true)}
+   async-action
+                 #_(fn [a b c]
+     (throw (js/Error. "Oops")))
+                 #_(fn [app owner value chan]
+     (go
+      #_(<! (timeout 3000))
+      (if-let [err (js/confirm "Error ?")]
+        (>! chan :ko)
+        (>! chan :ok))
+      #_(display-edn app owner value)
+      ))
    display-edn
-   display-edn
-    {:create-person {:className "visible"}
-     :action {:one-shot false
-              :no-reset true
-              }
+    {:IWillReceiveProps (fn [owner next-props]
+                          (prn "on receive props")
+                          (when-let [first-name (get-in next-props [:first-name])]
+                            (put! (om/get-state owner :chan) [:person/first-name first-name])
+                                               #_(om/set-state! owner [:inputs :person/first-name :value] first-name)))
+     :create-person {:className "visible"}
+     :action {:one-shot true
+              :no-reset false
+              :async true}
      :init {:person/gender "M"
 ;;             :person/date-aller (at 0)
             :person/vat "FR7589272"
@@ -67,7 +124,8 @@
             :person/married true
             :person/name "MADELAINE"}
      :order [:person/date-aller  :person/date-retour :person/first-name :person/name :person/vat :person/email :person/email-confirm :person/gender :person/birthdate :person/age :person/size :person/married]
-     :person/gender {:type "radio-group"}
+     :person/first-name {}
+     :person/gender {:type "radio-group-inline"}
      :person/date-aller {:type "now"
                          :labeled true}
      :person/date-retour {:labeled true}
@@ -92,11 +150,14 @@
      [this state]
      (dom/div #js {:className "container"}
        (dom/input #js {:type "button"
-                       :onClick #(om/set-state! owner [:dyn-opts :person/date-retour :type] "now")})
+                       :onClick #(do
+                                   #_(om/set-state-nr! owner [:dyn-opts :person/first-name :value] "Hiram")
+                                   #_(om/set-state! owner [:dyn-opts :person/date-retour :type] "now")
+                                   (om/update! app [:client :first-name] "Hiram"))})
               (dom/div #js {}
               (dom/a #js {:href "#"} (dom/img #js {:src "img/fr.png" :className "flag" :onClick #(om/set-state! owner [:lang] "fr")}))
               (dom/a #js {:href "#"} (dom/img #js {:src "img/gb.png" :className "flag" :onClick #(om/set-state! owner [:lang] "en")})))
-      (om/build input-view app {:state state})))))
+      (om/build input-view (:client app) {:state state})))))
 
 (om/root
  app
@@ -135,11 +196,18 @@
 
                                         :person/age {:label "Nombre de passagers"
                                                      :desc "Votre age véritable"}
-                                        :person/name {:label "Nom"}
+                                        :person/name {:label "Nom"
+                                                      :info "hjkdfhd fhdsjfh hfdjsf dskffshf
+                                                      dshkfhsd  sdhfjhsdfk hjkhkj  hjhk hjj h hjhk h hkj h
+                                                      tty g hgh gh  gj https://api.github.com/users/hiram-madelaine/repos
+                                                      sqdksh sqd hash-imap
+                                                      djskq
+                                                      qsjdk
+                                                      qsjkldj jqskd  jkqjd kjd zaljdaz "}
                                         :person/vat {:label "TVA"
                                                      :desc "Charactères alphanumeriques"
                                                      :ph "AB0123456789"}
-                                       :person/email {:desc "Nous n'envoyons jamais de spam, promis !"}
+                                        :person/email {:desc "Nous n'envoyons jamais de spam, promis !"}
                                        :person/first-name {:label "Prénom"}
                                        :person/birthdate {:label "Date de naissance"}
                                        :person/size {:label "Taille (cm)"}
