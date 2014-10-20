@@ -133,7 +133,7 @@
                   :attrs {:min "1" :max "5"}
                   :labeled true}
      :validations [[:after (at 0) :person/date-aller :date-aller]
-                   [:greater [:person/date-retour :person/date-aller] :date-retour]
+;;                    [:greater [:person/date-retour :person/date-aller] :date-retour]
                    [:email [:person/email-confirm :person/email] :bad-email]
                    [:equal [:person/email-confirm :person/email] :email-match]]}))
 
@@ -197,6 +197,7 @@
                                         :person/age {:label "Nombre de passagers"
                                                      :desc "Votre age véritable"}
                                         :person/name {:label "Nom"
+                                                      :info-title "Information importante"
                                                       :info "hjkdfhd fhdsjfh hfdjsf dskffshf
                                                       dshkfhsd  sdhfjhsdfk hjkhkj  hjhk hjj h hjhk h hkj h
                                                       tty g hgh gh  gj https://api.github.com/users/hiram-madelaine/repos
