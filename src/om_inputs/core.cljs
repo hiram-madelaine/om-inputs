@@ -222,14 +222,14 @@
   options :
   :k the target field
   :type serves to build the css class tooltip-type
-  "
-  [app owner m]
+  :action attach a function when closing the tooltip"
+  [app owner opts]
   (reify
     om/IDidMount
     (did-mount
-     [this]
-     (let [tool (om/get-node owner (str (:k m) "-tooltip"))
-           elem (.getElementById js/document (full-name (:k m)))
+     [_]
+     (let [tool (om/get-node owner (str (:k opts) "-tooltip"))
+           elem (.getElementById js/document (full-name (:k opts)))
            rect-tool (.getBoundingClientRect tool)
            rect (.getBoundingClientRect elem)
            delta (* 0.5 (- (.-height rect) (.-height rect-tool)))]
@@ -237,15 +237,16 @@
        (set! (.-top (.-style tool)) (str delta "px"))))
     om/IRender
     (render
-     [this]
-     (dom/div #js {:className (styles "popover right in" (str "popover-" (:type m)))
+     [_]
+     (dom/div #js {:className (styles "popover right" (str "popover-" (:type opts)))
                    :role "alert"
-                   :ref (str (:k m) "-tooltip")}
+                   :ref (str (:k opts) "-tooltip")}
               (dom/div #js {:className "arrow"} "")
+              (when (:title app)  (dom/div #js {:className "popover-title"} (:title app)))
               (dom/div #js {:className "popover-content"} (:mess app)
                        (dom/div #js {:type "button"
                                      :className "close"
-                                     :onClick (:action m)} "x"))))))
+                                     :onClick (:action opts)} "x"))))))
 
 
 
@@ -386,7 +387,7 @@
                 :className "form-control"
                 :value (fvalue inputs k)
                 :onBlur #(do
-                           (put! chan [:focus k])
+                          (put! chan [:focus k])
                           (put! chan [:validate k]))
                 :onFocus #(put! chan [:focus k])
                 :onChange #(put! chan [k (e-value %)])
@@ -402,15 +403,17 @@
 
               (dom/div #js {:className "input-container"}
                        (magic-input {:k k :t t :attrs attrs :chan chan :opts opts :data (data i18n k)})
-                       (when (and (info i18n k) (ffocus inputs k))
-                         (om/build tooltip {:mess (info i18n k)} {:opts {:k k
-                                                                        :type "info"}}))
+                       (when (and (info i18n k)
+                                  (ffocus inputs k))
+                         (om/build tooltip {:mess  (info i18n k)
+                                            :title (get-in i18n [k :info-title])} {:opts {:k    k
+                                                                                          :type "info"}}))
                        (let [mess (error full-i18n err-k)]
                          (when (and invalid mess)
-                           (om/build tooltip {:mess mess} {:opts {:k k
-                                                                          :type "error"
-                                                                          :action #(put! chan [:kill-mess k])}
-                                                                   :state {:mess mess}}))))))))
+                           (om/build tooltip {:mess mess} {:opts  {:k      k
+                                                                   :type   "error"
+                                                                   :action #(put! chan [:kill-mess k])}
+                                                           :state {:mess mess}}))))))))
 (def action-states
   {:init :active
    :in-error :active
