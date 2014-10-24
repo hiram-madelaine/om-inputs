@@ -9,8 +9,9 @@
    [schema.core :as s]
    [om-inputs.date-utils :refer  [at tomorrow]]
    [goog.net.XhrIo :as xhr]
-    [cljs.reader :as reader]
-            [goog.events :as events])
+   [cljs.reader :as reader]
+   [goog.events :as events]
+   [figwheel.client :as fw :include-macros true])
    (:import [goog.net XhrIo]
            goog.net.EventType
            [goog.events EventType]
@@ -159,7 +160,8 @@
               (dom/a #js {:href "#"} (dom/img #js {:src "img/gb.png" :className "flag" :onClick #(om/set-state! owner [:lang] "en")})))
       (om/build input-view (:client app) {:state state})))))
 
-(om/root
+(defn main []
+ (om/root
  app
  app-state
  {:target (. js/document (getElementById "person"))
@@ -193,11 +195,11 @@
                                         :clean {:label "Nouveau client"}
                                         :action {:label "Créer personne"
                                                  :desc "Nous n'allons pas débiter votre carte à cette étape."}
-
+                                                 :person/date-aller {:label "Date aller"}
                                         :person/age {:label "Nombre de passagers"
-                                                     :desc "Votre age véritable"}
+                                                     :desc "Votre age"}
                                         :person/name {:label "Nom"
-                                                      :info-title "Information importante"
+                                                      :info-title "Information importante !"
                                                       :info "hjkdfhd fhdsjfh hfdjsf dskffshf
                                                       dshkfhsd  sdhfjhsdfk hjkhkj  hjhk hjj h hjhk h hkj h
                                                       tty g hgh gh  gj https://api.github.com/users/hiram-madelaine/repos
@@ -214,4 +216,14 @@
                                        :person/size {:label "Taille (cm)"}
                                        :person/gender {:label "Genre"
                                                        :data {"M" {:label "Monsieur"}
-                                                              "Ms" {:label "Madame"}}}}}}}})
+                                                              "Ms" {:label "Madame"}}}}}}}}))
+
+
+(fw/watch-and-reload
+ :websocket-url "ws://localhost:3449/figwheel-ws"
+ :jsload-callback
+ (fn []
+   (println "reloaded")
+   (main)))
+
+(defonce initial-call-to-main (main))

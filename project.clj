@@ -9,8 +9,8 @@
                  [prismatic/dommy "0.1.2"]
                  [prismatic/schema "0.3.0"]
                  [com.facebook/react "0.11.1"]
-                 [jkkramer/verily "0.6.0-SNAPSHOT"]
-                 ;           [figwheel "0.1.4-SNAPSHOT"]
+                 [jkkramer/verily "0.6.0"]
+                 [figwheel "0.1.5-SNAPSHOT"]
                  ;[environ "1.0.0"]
                  ;[com.cemerick/piggieback "0.1.3"]
                  ;[weasel "0.4.0-SNAPSHOT"]
@@ -18,6 +18,7 @@
                  ]
 
   :plugins [[lein-cljsbuild "1.0.4-SNAPSHOT"]
+            [lein-figwheel "0.1.5-SNAPSHOT"]
             [codox "0.8.10"]
             ;[lein-environ "1.0.0"]
             ]
@@ -28,7 +29,7 @@
 
   :codox {:language :clojurescript
           :include [om-inputs.date-utils om-inputs.core]}
-
+  :resource-paths ["examples"]
 
   :cljsbuild {
               :builds [{:id "dev"
@@ -53,6 +54,11 @@
                                    :pseudo-names false
                                    :preamble ["react/react.min.js"]
                                    :externs ["react/externs/react.js"]}}]}
+
+
+  :figwheel {:http-server-root "contact"
+             :server-port 3449
+             :css-dirs ["examples/contact/css"]}
 
 
   #_(:profiles {:dev     {:repl-options {:init-ns          try-chestnut.server
