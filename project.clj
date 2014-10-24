@@ -34,20 +34,20 @@
   :cljsbuild {
               :builds [{:id "dev"
                         :source-paths ["src" "examples/contact/src"]
-                        :compiler {:output-to "examples/contact/om_inputs.js"
+                        :compiler {:output-to "examples/contact/out/om_inputs.js"
                                    :output-dir "examples/contact/out"
                                    :optimizations :none
                                    :source-map true}}
                        {:id "simple"
                         :source-paths ["src" "examples/contact/src"]
-                        :compiler {:output-to "main.js"
+                        :compiler {:output-to "examples/contact/out/main.js"
                                    :optimizations :simple
                                    :pretty-print true
                                    :preamble ["react/react.min.js"]
                                    :externs ["react/externs/react.js"]}}
                        {:id "release"
                         :source-paths ["src" "examples/contact/src"]
-                        :compiler {:output-to "main.js"
+                        :compiler {:output-to "examples/contact/out/main.js"
                                    :optimizations :advanced
                                    ;:closure-warnings {:check-useless-code :on}
                                    :pretty-print false
