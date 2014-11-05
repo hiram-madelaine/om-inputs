@@ -95,14 +95,14 @@
   [{{:keys [attrs k i18n k-sch]} :opts chan :chan}]
   (apply dom/div #js {:className "btn-group"}
          (map (fn [code]
-                (dom/div #js {:className "btn-group"}
-                         (dom/button (clj->js (merge attrs {:type      "button"
-                                                            :active   (= code (:value attrs))
-                                                            :className (styles "btn" (if (= code (:value attrs)) "btn-info" "btn-default"))
-                                                            ;  :name (full-name k)
-                                                            :value     code
-                                                            :onClick   #(put! chan [k code])}))
-                                     (enum-label i18n code))))
+                (dom/button (clj->js (merge attrs {:type      "button"
+                                                   :active    (= code (:value attrs))
+                                                   :className (styles "btn" (if (= code (:value attrs)) "btn-primary" "btn-default"))
+                                                   :key (str (full-name k) "/" code)
+                                                   :id (str (full-name k) "/" code)
+                                                   :value     code
+                                                   :onClick   #(put! chan [k code])}))
+                            (enum-label i18n code)))
               (:vs k-sch))))
 
 (defmethod magic-input "range-btn-group"
@@ -111,14 +111,15 @@
         max (inc (int (:max attrs)))]
    (apply dom/div #js {:className "btn-group"}
           (map (fn [code]
-                 (dom/div #js {:className "btn-group"}
-                          (dom/button (clj->js (merge attrs {:type      "button"
-                                                             :active    (= code (:value attrs))
-                                                             :className (styles "btn" (if (= code (:value attrs)) "btn-info" "btn-default"))
-                                                             ;  :name (full-name k)
-                                                             :value     code
-                                                             :onClick   #(put! chan [k code])}))
-                                      code)))
+                 (dom/button (clj->js (merge attrs {:type      "button"
+                                                    :active    (= code (:value attrs))
+                                                    :className (styles "btn" (if (= code (:value attrs)) "btn-primary" "btn-default"))
+                                                    :key       (str (full-name k) "/" code)
+                                                    :id        (str (full-name k) "/" code)
+                                                    ;  :name (full-name k)
+                                                    :value     code
+                                                    :onClick   #(put! chan [k code])}))
+                             code))
                (range min max)))))
 
 
