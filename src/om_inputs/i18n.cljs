@@ -97,21 +97,24 @@
 ;_________________________________________________|
 
 (defn label
-  [i18n k]
-  (get-in i18n [k :label] (str/capitalize (name k))))
+  ([opts]
+   (label (:i18n opts) (:k opts)))
+  ([i18n k]
+   (get-in i18n [:label] (str/capitalize (name k)))))
 
 (defn desc
-  [i18n k]
-  (get-in i18n [k :desc]))
+  ([opts]
+   (get-in opts [:i18n :desc]))
+  ([i18n k]
+   (get-in i18n [k :desc])))
 
 (defn desc?
   [i18n k]
   (not (nil? (desc i18n k))))
 
 (defn data
-  [i18n
-   k]
-  (get-in i18n [k :data]))
+  [i18n]
+  (get-in i18n [:data]))
 
 (defn enum-label [data code]
   (get-in data [code :label] (if (keyword? code) (full-name code) code)))
@@ -122,9 +125,13 @@
   (get-in full-i18n [:errors k]))
 
 (defn ph
-  [i18n k]
-  (get-in i18n [k :ph]))
+  [i18n]
+  (get-in i18n [:ph]))
 
 (defn info
-  [i18n k]
-  (get-in i18n [k :info]))
+  [opts]
+  (get-in opts [:i18n :info]))
+
+(defn info-title
+  [opts]
+  (get-in opts [:i18n :info-title]))

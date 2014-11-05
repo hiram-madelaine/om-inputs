@@ -49,7 +49,9 @@
    (s/optional-key :action) {(s/optional-key :one-shot) s/Bool
                              (s/optional-key :no-reset) s/Bool
                              (s/optional-key :async) s/Bool}
-   s/Keyword {(s/optional-key :type) s/Str
-              (s/optional-key :labeled) s/Bool
-              (s/optional-key :attrs) s/Any
-              (s/optional-key :className) s/Str}})
+   s/Keyword {(s/optional-key :type)      s/Str
+              (s/optional-key :labeled)   s/Bool
+              (s/optional-key :attrs)     s/Any
+              (s/optional-key :className) s/Str
+              (s/optional-key :layout)    s/Str}})
+

@@ -83,7 +83,7 @@
   {:person/first-name (s/maybe s/Str)
    :person/date-aller s/Inst
    (s/optional-key :person/date-retour) s/Inst
-   :person/immat (s/Regex )
+   :person/immat (s/Regex #"^[A-Z0-9]{1,12}")
    :person/name s/Str
    :person/email s/Str
    :person/email-confirm s/Str
@@ -114,25 +114,26 @@
      :action {:one-shot true
               :no-reset false
               :async true}
-     :init {:person/gender "M"
+     :init {:person/gender "Ms"
 ;;             :person/date-aller (at 0)
             :person/vat "FR7589272"
             :person/size 187.50
-            :person/age 1
+            :person/age 3
             :person/birthdate (tomorrow)
             :person/email "h@h"
             :person/email-confirm "h@h"
             :person/married true
             :person/name "MADELAINE"}
-     :order [:person/date-aller  :person/date-retour :person/first-name :person/name :person/vat :person/email :person/email-confirm :person/gender :person/birthdate :person/age :person/size :person/married]
-     :person/first-name {}
-     :person/gender {:type "radio-group-inline"}
+     ; :order [:person/date-aller  :person/date-retour :person/first-name :person/name :person/vat :person/email :person/email-confirm :person/gender :person/birthdate :person/age :person/size :person/married]
+     :person/first-name {:layout "horizontal"}
+      :person/gender {:type "btn-group"}
      :person/date-aller {:type "now"
                          :labeled true}
      :person/date-retour {:labeled true}
-     :person/age {:type "range"
+     :person/age {:type "range-btn-group"
                   :attrs {:min "1" :max "5"}
                   :labeled true}
+      :person/married {:layout "in-line"}
      :validations [[:after (at 0) :person/date-aller :date-aller]
 ;;                    [:greater [:person/date-retour :person/date-aller] :date-retour]
                    [:email [:person/email-confirm :person/email] :bad-email]
@@ -192,7 +193,8 @@
                                  :person-size-min-length "Trop court !"
                                  :bad-email "Cette adresse email est invalide"}
                         :create-person {:title "Creation du compte"
-                                        :clean {:label "Nouveau client"}
+                                        :clean {:label "Nouveau client"
+                                                :desc "Procéder à la création d'un nouveau compte"}
                                         :action {:label "Créer personne"
                                                  :desc "Nous n'allons pas débiter votre carte à cette étape."}
                                                  :person/date-aller {:label "Date aller"}
@@ -211,10 +213,15 @@
                                                      :desc "Charactères alphanumeriques"
                                                      :ph "AB0123456789"}
                                         :person/email {:desc "Nous n'envoyons jamais de spam, promis !"}
+                                        :person/date-retour {:label "Date de retour"}
+                                        :person/email-confirm {:label "Confirmation de l'email"}
                                        :person/first-name {:label "Prénom"}
                                        :person/birthdate {:label "Date de naissance"}
                                        :person/size {:label "Taille (cm)"}
-                                       :person/gender {:label "Genre"
+                                       :person/married {:label "Marié(e)"
+                                                        :desc "Pas de mensonge"
+                                                        }
+                                        :person/gender {:label "Genre"
                                                        :data {"M" {:label "Monsieur"}
                                                               "Ms" {:label "Madame"}}}}}}}}))
 

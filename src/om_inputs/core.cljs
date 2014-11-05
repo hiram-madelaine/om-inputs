@@ -12,7 +12,7 @@
             [om-inputs.schema-utils :as su :refer [sch-type]]
             [om-inputs.schemas :refer [sch-business-state sch-field-state SchOptions]]
             [om-inputs.validation :as va]
-            [om-inputs.i18n :refer [comp-i18n label desc desc? data error ph info]]
+            [om-inputs.i18n :as i :refer [comp-i18n label desc desc? data error ph info]]
             [om-inputs.typing-controls :refer [build-typing-control]]
             [jkkramer.verily :as v]
             [goog.events]))
@@ -35,6 +35,14 @@
   [e]
   (-> e .-target .-checked))
 
+;_________________________________________________
+;                                                 |
+;          Component Utils                        |
+;_________________________________________________|
+
+(defn styles
+  [& args]
+  (str/join " " args))
 
 ;___________________________________________________________
 ;                                                           |
@@ -43,35 +51,36 @@
 
 
 (defmulti magic-input
-  (fn [{t :t k :k opts :opts}]
-    (get-in opts [k :type] (sch-type t))))
+  (fn [{opts :opts}]
+    (get-in opts [:type] (sch-type (:k-sch opts)))))
 
+(defn enum-label
+  "Display the label of a select or radio group entry"
+  [i18n code]
+  (get-in i18n [:data code :label] (if (keyword? code) (full-name code) code)))
 
 (defmethod magic-input "enum"
-  [{:keys [k t data attrs chan]}]
+  [{{:keys [attrs i18n k-sch]} :opts}]
   (apply dom/select (clj->js attrs)
          (dom/option #js {:value ""} "")
          (map (fn [code]
                 (dom/option #js {:value code}
-                            (get-in data [code :label] (if (keyword? code)
-                                                         (full-name code)
-                                                         code)))) (:vs t))))
-
-
+                            (enum-label i18n code)))
+              (:vs k-sch))))
 (defn radio-group
-  [style {:keys [k t data attrs chan]}]
+  [style {{:keys [attrs k i18n k-sch]} :opts chan :chan}]
   (apply dom/div #js {:className "input-group"}
-           (map (fn [code]
-                  (dom/div #js {:className style}
-                           (dom/label #js {}
-                                      (dom/input  (clj->js (merge attrs {:type "radio"
-                                                                         :checked (= (:value attrs) code)
-                                                                         :className ""
-                                                                         :id (full-name k)
-                                                                         :name (full-name k)
-                                                                         :value code
-                                                                         :onClick #(put! chan [k code])} )))
-                                      (get-in data [code :label] (if (keyword? code) (full-name code) code))))) (:vs t))))
+         (map (fn [code]
+                (dom/div #js {:className style}
+                         (dom/label #js {}
+                                    (dom/input (clj->js (merge attrs {:type      "radio"
+                                                                      :checked   (= code (:value attrs))
+                                                                      :className ""
+                                                                      ;  :name (full-name k)
+                                                                      :value     code
+                                                                      :onClick   #(put! chan [k code])})))
+                                    (enum-label i18n code))))
+              (:vs k-sch))))
 
 (defmethod magic-input "radio-group"
   [m]
@@ -82,20 +91,51 @@
   (radio-group "radio-inline" m))
 
 
+(defmethod magic-input "btn-group"
+  [{{:keys [attrs k i18n k-sch]} :opts chan :chan}]
+  (apply dom/div #js {:className "btn-group"}
+         (map (fn [code]
+                (dom/div #js {:className "btn-group"}
+                         (dom/button (clj->js (merge attrs {:type      "button"
+                                                            :active   (= code (:value attrs))
+                                                            :className (styles "btn" (if (= code (:value attrs)) "btn-info" "btn-default"))
+                                                            ;  :name (full-name k)
+                                                            :value     code
+                                                            :onClick   #(put! chan [k code])}))
+                                     (enum-label i18n code))))
+              (:vs k-sch))))
+
+(defmethod magic-input "range-btn-group"
+  [{{:keys [attrs k i18n k-sch]} :opts chan :chan}]
+  (let [min (int (:min attrs))
+        max (inc (int (:max attrs)))]
+   (apply dom/div #js {:className "btn-group"}
+          (map (fn [code]
+                 (dom/div #js {:className "btn-group"}
+                          (dom/button (clj->js (merge attrs {:type      "button"
+                                                             :active    (= code (:value attrs))
+                                                             :className (styles "btn" (if (= code (:value attrs)) "btn-info" "btn-default"))
+                                                             ;  :name (full-name k)
+                                                             :value     code
+                                                             :onClick   #(put! chan [k code])}))
+                                      code)))
+               (range min max)))))
+
+
+
 (defmethod magic-input s/Inst
-  [{:keys [k attrs]}]
+  [{{:keys [attrs]} :opts}]
   (let [v (:value attrs)
         date-in (d/display-date v)]
-    (dom/input (clj->js (merge attrs
-                               {:value date-in})))))
+    (dom/input (clj->js (merge attrs {:value date-in})))))
 
 
 (defmethod magic-input s/Bool
-  [{:keys [k attrs chan]}]
+  [{{:keys [k attrs]} :opts chan :chan}]
   (let [value (:value attrs)]
-   (dom/input (clj->js (merge attrs {:checked (js/Boolean value)
-                                     :onChange #(put! chan [k (-> % .-target .-checked)])
-                                     :type "checkbox"})))))
+    (dom/input (clj->js (merge attrs {:checked  (js/Boolean value)
+                                      :onChange #(put! chan [k (-> % .-target .-checked)])
+                                      :type     "checkbox"})))))
 
 
 #_(defmethod magic-input integer?
@@ -104,30 +144,22 @@
 
 
 (defmethod magic-input "range"
- [{:keys [k attrs data]}]
+ [{{:keys [attrs]} :opts}]
   (dom/input (clj->js (merge {:type "range"} attrs))))
 
 (defmethod magic-input "now"
-  [{:keys [k attrs data chan]}]
-  (dom/input (clj->js (merge attrs {:type "button"
-                                    :className "btn"
+  [{{:keys [attrs k]} :opts chan :chan}]
+  (dom/input (clj->js (merge attrs {:type           "button"
+                                    :className      "btn"
                                     :preventDefault true
-                                    :onClick #(put! chan [k (js/Date.)])}))))
+                                    :onClick        #(put! chan [k (js/Date.)])}))))
 
 
 (defmethod magic-input :default
-  [{:keys [k attrs]}]
+  [{{:keys [attrs]} :opts}]
   (dom/input (clj->js attrs)))
 
 
-;_________________________________________________
-;                                                 |
-;          Component Utils                        |
-;_________________________________________________|
-
-(defn styles
-  [& args]
-  (str/join " " args))
 
 
 ;_________________________________________________
@@ -272,7 +304,7 @@
 
 
 (defn button-view
-  [app owner {:keys [k labels comp-name] :as opts}]
+  [app owner {:keys [k labels comp-name]}]
   (reify
     om/IRenderState
     (render-state
@@ -291,7 +323,8 @@
                             (dom/span #js {:className "error"}
                                      (dom/i #js {:className "fa fa-ban text-danger"}))
                             (dom/span #js {:className "spinner"}
-                                     (dom/i #js {:className "fa fa-spin fa-cog"}))))))))
+                                     (dom/i #js {:className "fa fa-spin fa-cog"})))
+                (dom/div #js {:className "description"} (:desc labels)))))))
 
 ;___________________________________________________________
 ;                                                           |
@@ -363,57 +396,102 @@
 ;                 Om/React Form Component Builders          |
 ;___________________________________________________________|
 
+(defn error-mess
+  "Finds the i18n message for the first error on a field."
+  [owner kbs lang]
+  (let [full-i18n (om/get-shared owner [:i18n lang])]
+   (when-let [[err-k & errs] (:error kbs)]
+     (i/error full-i18n err-k))))
+
+(defn validation-style
+  [{:keys [valid invalid]}]
+  (cond valid "has-success" invalid "has-error has-feedback" :else ""))
+
+(defn required-style
+  [kbs]
+  (if (:required kbs) "required" "optional"))
+
+
+
+(defmulti layout-input
+          (fn [_ {layout :layout} _ _]
+            layout))
+
+(defmethod layout-input :default
+  [owner opts kbs {:keys [invalid] :as val-states}]
+  (let [{:keys [chan lang]} (om/get-state owner)]
+    (dom/div #js {:className (styles "form-group" (validation-style val-states))}
+            (dom/label #js {:htmlFor   (full-name (:k opts))
+                            :className (styles "control-label" (required-style kbs))}
+                       (i/label opts))
+            (when (:labeled opts) (dom/label #js {:className "badge"} (:value kbs)))
+            (when (i/desc opts) (dom/div #js {:className "description"} (i/desc opts)))
+            (dom/div #js {:className "input-container"}
+                     (let [opts (assoc-in opts [:attrs :className] "form-control")]
+                       (magic-input {:chan chan :opts opts}))
+                     (when (and (i/info opts)
+                                (:focus kbs))
+                       (om/build tooltip {:mess  (i/info opts)
+                                          :title (i/info-title opts)} {:opts {:k (:k opts) :type "info"}}))
+                     (let [mess (error-mess owner kbs lang)]
+                       (when (and invalid mess)
+                         (om/build tooltip {:mess mess} {:opts  {:k      (:k opts)
+                                                                 :type   "error"
+                                                                 :action #(put! chan [:kill-mess (:k opts)])}
+                                                         :state {:mess mess}})))))))
+
+(defmethod layout-input "in-line"
+  [owner opts kbs {:keys [invalid] :as val-states}]
+  (let [{:keys [chan lang]} (om/get-state owner)]
+   (dom/div #js {:className (validation-style val-states)}
+            (dom/div #js {:className (styles "checkbox" (required-style kbs))}
+                     (dom/label #js {:htmlFor   (full-name (:k opts))}
+                                (when (:labeled opts) (dom/label #js {:className "badge"} (:value kbs)))
+                                (dom/div #js {:className "input-container"}
+                                         (magic-input {:chan chan :opts opts})
+                                         (when (and (i/info opts)
+                                                    (:focus opts))
+                                           (om/build tooltip {:mess  (i/info opts)
+                                                              :title (i/info-title opts)} {:opts {:k (:k opts) :type "info"}})))
+                                (dom/div #js {} (i/label opts))
+
+                                )
+
+                     (let [mess (error-mess owner kbs lang)]
+                       (when (and invalid mess)
+                         (om/build tooltip {:mess mess} {:opts  {:k      (:k opts)
+                                                                 :type   "error"
+                                                                 :action #(put! chan [:kill-mess (:k opts)])}
+                                                         :state {:mess mess}}))))
+            (when (i/desc opts) (dom/p #js {:className "description"} (i/desc opts))))))
 
 
 (defn build-input
-  "Handle the display of an input from state and push change on a channel.
-  The map of inputs is expected in state under the key :inputs
-  The channel is expected in state under key :chan
-  The i18n fn is expected in shared under key :i18n"
-  ([owner k t i18n ]
-   (build-input owner k t i18n {}))
-  ([owner k t i18n opts]
-   (let [{:keys [chan inputs lang]} (om/get-state owner)
-         full-i18n (om/get-shared owner [:i18n lang])
-         valid (fvalid inputs k)
-         controled (not (nil? valid))
-         invalid (and controled (not valid))
-         input-style (cond valid "has-success" invalid "has-error has-feedback" :else "")
-         required-style (if (frequired inputs k) "required" "optional")
-         [err-k & errs] (when invalid (ferrors inputs k))
-         attrs {:id (full-name k)
-                :key (full-name k)
-                :ref (full-name k)
-                :className "form-control"
-                :value (fvalue inputs k)
-                :onBlur #(do
-                          (put! chan [:focus k])
-                          (put! chan [:validate k]))
-                :onFocus #(put! chan [:focus k])
-                :onChange #(put! chan [k (e-value %)])
-                :placeholder (ph i18n k)
-                :disabled (fdisabled inputs k)}
-         attrs (merge attrs (get-in opts [k :attrs]))]
-     (dom/div #js {:className (styles "form-group" input-style)}
-              (dom/label #js {:htmlFor (full-name k)
-                              :className (styles "control-label" required-style)}
-                         (label i18n k))
-              (when (get-in opts [k :labeled]) (dom/label #js {:className "badge"} (fvalue inputs k)))
-              (when (desc? i18n k) (dom/div #js {:className "description"} (desc i18n k)))
+  [owner {:keys [k] :as opts}]
+  (let [{:keys [chan inputs]} (om/get-state owner)
+        kbs (k inputs)
+        valid (:valid kbs)
+        controled (not (nil? valid))
+        invalid (and controled (not valid))
+        val-states {:valid     valid
+                    :invalid   invalid
+                    :controled controled}
+        k-attrs {:id          (full-name k)
+                 :key         (full-name k)
+                 :ref         (full-name k)
+                 :value       (:value kbs)
+                 :onBlur      #(do
+                                (put! chan [:focus k])
+                                (put! chan [:validate k]))
+                 :onFocus     #(put! chan [:focus k])
+                 :onChange    #(put! chan [k (e-value %)])
+                 :placeholder (get-in opts [:i18n :ph])
+                 :disabled    (:disabled  kbs)}
+        opts (update-in opts [:attrs] #(merge k-attrs %))]
+    (layout-input owner opts kbs val-states)))
 
-              (dom/div #js {:className "input-container"}
-                       (magic-input {:k k :t t :attrs attrs :chan chan :opts opts :data (data i18n k)})
-                       (when (and (info i18n k)
-                                  (ffocus inputs k))
-                         (om/build tooltip {:mess  (info i18n k)
-                                            :title (get-in i18n [k :info-title])} {:opts {:k    k
-                                                                                          :type "info"}}))
-                       (let [mess (error full-i18n err-k)]
-                         (when (and invalid mess)
-                           (om/build tooltip {:mess mess} {:opts  {:k      k
-                                                                   :type   "error"
-                                                                   :action #(put! chan [:kill-mess k])}
-                                                           :state {:mess mess}}))))))))
+
+
 (def action-states
   {:init :active
    :in-error :active
@@ -564,16 +642,17 @@
                      (dom/form #js {:className "panel-body"
                                     :role "form"}
                                (into-array (if order
-                                             (map (fn [k] (build-input owner k (su/get-sch schema k) labels opts)) order)
-                                             (map (fn [[k t]] (build-input owner (get k :k k) t labels opts)) schema)))
+                                             (map (fn [k] (build-input owner (assoc (k opts) :k k :k-sch (su/get-sch schema k) :i18n (k labels)))) order)
+                                             (map (fn [[k t]]
+                                                    (let [k (if (keyword? k) k (:k k))]
+                                                     (build-input owner (assoc (k opts) :k k :k-sch t :i18n (k labels))))) schema)))
                                (dom/div #js {:className "panel-button"}
                                         (om/build button-view app {:state state :opts {:k :action
-                                                                                       :labels labels
+                                                                                       :labels (:action labels)
                                                                                        :comp-name comp-name}})
                                         (om/build button-view app {:state state :opts {:k :clean
-                                                                                       :labels labels
-                                                                                       :comp-name comp-name}}))
-                               (dom/div #js {:className "description"} (desc labels :action)))))))))))
+                                                                                       :labels (:clean labels)
+                                                                                       :comp-name comp-name}})))))))))))
 
 
 

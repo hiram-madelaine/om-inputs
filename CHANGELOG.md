@@ -1,3 +1,10 @@
+## 0.3.6-SNAPSHOT
+
+* ADD Layout indirection for input
+* ADD New input display segmented control with : btn-group and radio-btn-group
+* TEC Rewrite the way inputs are build. Each input is now given only its data.
+
+
 ## 0.3.5-SNAPSHOT
 
 * ADD Experimental handling of asynchroneous action. New options {:action {:async true}}. The callback accepts a fourth argument that is the channel. The callback must put! :ok or :ko at the end.
