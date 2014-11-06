@@ -93,13 +93,14 @@
 
 (defmethod magic-input "btn-group"
   [{{:keys [attrs k i18n k-sch]} :opts chan :chan}]
-  (apply dom/div #js {:className "btn-group"}
+  (apply dom/div #js {:className "btn-group"
+                      :id        (full-name k)}
          (map (fn [code]
                 (dom/button (clj->js (merge attrs {:type      "button"
                                                    :active    (= code (:value attrs))
                                                    :className (styles "btn" (if (= code (:value attrs)) "btn-primary" "btn-default"))
-                                                   :key (str (full-name k) "/" code)
-                                                   :id (str (full-name k) "/" code)
+                                                   :key       (str (full-name k) "/" code)
+                                                   :id        (str (full-name k) "/" code)
                                                    :value     code
                                                    :onClick   #(put! chan [k code])}))
                             (enum-label i18n code)))
@@ -109,7 +110,8 @@
   [{{:keys [attrs k i18n k-sch]} :opts chan :chan}]
   (let [min (int (:min attrs))
         max (inc (int (:max attrs)))]
-   (apply dom/div #js {:className "btn-group"}
+   (apply dom/div #js {:className "btn-group"
+                       :id (full-name k)}
           (map (fn [code]
                  (dom/button (clj->js (merge attrs {:type      "button"
                                                     :active    (= code (:value attrs))
@@ -261,7 +263,8 @@
     om/IDidMount
     (did-mount
      [_]
-     (let [tool (om/get-node owner (str (:k opts) "-tooltip"))
+     (let [_ (prn (str "tooltip : " (full-name (:k opts))))
+           tool (om/get-node owner (str (:k opts) "-tooltip"))
            elem (.getElementById js/document (full-name (:k opts)))
            rect-tool (.getBoundingClientRect tool)
            rect (.getBoundingClientRect elem)
@@ -454,10 +457,7 @@
                                                     (:focus opts))
                                            (om/build tooltip {:mess  (i/info opts)
                                                               :title (i/info-title opts)} {:opts {:k (:k opts) :type "info"}})))
-                                (dom/div #js {} (i/label opts))
-
-                                )
-
+                                (dom/div #js {} (i/label opts)))
                      (let [mess (error-mess owner kbs lang)]
                        (when (and invalid mess)
                          (om/build tooltip {:mess mess} {:opts  {:k      (:k opts)
