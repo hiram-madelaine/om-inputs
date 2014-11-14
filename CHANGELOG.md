@@ -1,3 +1,7 @@
+## 0.3.7-SNAPSHOT
+
+* ADD new input diplay : stepper -/+ for s/Int 
+
 ## 0.3.6-SNAPSHOT
 
 * ADD Layout indirection for input

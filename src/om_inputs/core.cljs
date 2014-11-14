@@ -93,37 +93,50 @@
 
 (defmethod magic-input "btn-group"
   [{{:keys [attrs k i18n k-sch]} :opts chan :chan}]
-  (apply dom/div #js {:className "btn-group"
-                      :id        (full-name k)}
+  (apply dom/div (clj->js (merge attrs {:className "btn-group"}))
          (map (fn [code]
-                (dom/button (clj->js (merge attrs {:type      "button"
-                                                   :active    (= code (:value attrs))
-                                                   :className (styles "btn" (if (= code (:value attrs)) "btn-primary" "btn-default"))
-                                                   :key       (str (full-name k) "/" code)
-                                                   :id        (str (full-name k) "/" code)
-                                                   :value     code
-                                                   :onClick   #(put! chan [k code])}))
+                (dom/button #js {:type      "button"
+                             :active    (= code (:value attrs))
+                             :className (styles "btn" (if (= code (:value attrs)) "btn-primary" "btn-default"))
+                             :key       (str (full-name k) "/" code)
+                             :id        (str (full-name k) "/" code)
+                             :value     code
+                             :onClick   #(put! chan [k code])}
                             (enum-label i18n code)))
               (:vs k-sch))))
 
 (defmethod magic-input "range-btn-group"
-  [{{:keys [attrs k i18n k-sch]} :opts chan :chan}]
-  (let [min (int (:min attrs))
-        max (inc (int (:max attrs)))]
-   (apply dom/div #js {:className "btn-group"
-                       :id (full-name k)}
-          (map (fn [code]
-                 (dom/button (clj->js (merge attrs {:type      "button"
-                                                    :active    (= code (:value attrs))
-                                                    :className (styles "btn" (if (= code (:value attrs)) "btn-primary" "btn-default"))
-                                                    :key       (str (full-name k) "/" code)
-                                                    :id        (str (full-name k) "/" code)
-                                                    ;  :name (full-name k)
-                                                    :value     code
-                                                    :onClick   #(put! chan [k code])}))
-                             code))
-               (range min max)))))
+  [{{:keys [attrs k]} :opts chan :chan}]
+  (let [{:keys [min max value key]} attrs]
+    (apply dom/div (clj->js (merge attrs {:className "btn-group"}))
+           (map (fn [code]
+                  (dom/button #js {:type      "button"
+                                   :active    (= code value)
+                                   :className (styles "btn" (if (= code value) "btn-primary" "btn-default"))
+                                   :key       (str key "/" code)
+                                   :id        (str key "/" code)
+                                   :value     code
+                                   :onClick   #(put! chan [k code])}
+                              code))
+                (range (int min) (inc (int max)))))))
 
+(defmethod magic-input "stepper"
+  [{{:keys [attrs k]} :opts chan :chan}]
+  (let [{:keys [min max step value]} attrs
+        plus (if step (partial + (long step)) inc)
+        minus (if step (partial + (- (long step))) dec)]
+    (prn (minus value))
+   (dom/div (clj->js (merge attrs {:className "btn-group"}))
+            (dom/button #js {:type      "button"
+                             :className "btn btn-default"
+                             :onClick #(when (or (nil? min)
+                                                 (and min (<= (int min) (minus value))))
+                                        (put! chan [k (minus value)]))} "-")
+            (dom/button #js {:type      "button"
+                             :className "btn btn-default"
+                             :onClick #(when (or (nil? max)
+                                                 (and max (<= (plus value) (int max))))
+                                        (put! chan [k (plus value)]))} "+"))))
 
 
 (defmethod magic-input s/Inst
@@ -315,8 +328,8 @@
      [_ state]
      (let [chan-name (keyword (str (name k) "-chan"))
            chan (om/get-state owner chan-name)
-           state (get-in state [:action-state k])
-           btn-style (name state)]
+           button-state (get-in state [:action-state k])
+           btn-style (when button-state (name button-state))]
        (dom/div nil
                 (dom/button #js {:type  "button"
                                  :id (str (full-name comp-name) "-" (name k))
