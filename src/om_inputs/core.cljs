@@ -55,7 +55,7 @@
     (get-in opts [:type] (sch-type (:k-sch opts)))))
 
 (defn enum-label
-  "Display the label of a select or radio group entry"
+  "Display the i18n label of a select or radio group entry, fall backs to the code."
   [i18n code]
   (get-in i18n [:data code :label] (if (keyword? code) (full-name code) code)))
 
@@ -67,6 +67,8 @@
                 (dom/option #js {:value code}
                             (enum-label i18n code)))
               (:vs k-sch))))
+
+
 (defn radio-group
   [style {{:keys [attrs k i18n k-sch]} :opts chan :chan}]
   (apply dom/div #js {:className "input-group"}
@@ -91,34 +93,33 @@
   (radio-group "radio-inline" m))
 
 
+(defn make-segmented
+  "HOF, generates a function,  that closes over the value, for segemented control"
+  [type k value i18n chan]
+  (fn [code]
+    (dom/button #js {:type      type
+                     :active    (= code value)
+                     :className (styles "btn" (if (= code value) "btn-primary" "btn-default"))
+                     :key       (str (full-name k) "/" code)
+                     :id        (str (full-name k) "/" code)
+                     :value     code
+                     :onClick   #(put! chan [k code])}
+                (enum-label i18n code))))
+
 (defmethod magic-input "btn-group"
   [{{:keys [attrs k i18n k-sch]} :opts chan :chan}]
   (apply dom/div (clj->js (merge attrs {:className "btn-group"}))
-         (map (fn [code]
-                (dom/button #js {:type      "button"
-                             :active    (= code (:value attrs))
-                             :className (styles "btn" (if (= code (:value attrs)) "btn-primary" "btn-default"))
-                             :key       (str (full-name k) "/" code)
-                             :id        (str (full-name k) "/" code)
-                             :value     code
-                             :onClick   #(put! chan [k code])}
-                            (enum-label i18n code)))
-              (:vs k-sch))))
+         (map
+           (make-segmented "button" k (:value attrs) i18n chan)
+           (:vs k-sch))))
 
 (defmethod magic-input "range-btn-group"
   [{{:keys [attrs k]} :opts chan :chan}]
-  (let [{:keys [min max value key]} attrs]
+  (let [{:keys [min max step value] :or {step 1}} attrs]
     (apply dom/div (clj->js (merge attrs {:className "btn-group"}))
-           (map (fn [code]
-                  (dom/button #js {:type      "button"
-                                   :active    (= code value)
-                                   :className (styles "btn" (if (= code value) "btn-primary" "btn-default"))
-                                   :key       (str key "/" code)
-                                   :id        (str key "/" code)
-                                   :value     code
-                                   :onClick   #(put! chan [k code])}
-                              code))
-                (range (int min) (inc (int max)))))))
+           (map
+             (make-segmented "button" k value i18n chan)
+                (range (int min) (inc (int max)) step)))))
 
 (defmethod magic-input "stepper"
   [{{:keys [attrs k]} :opts chan :chan}]
