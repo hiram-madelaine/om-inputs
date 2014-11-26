@@ -3,6 +3,7 @@
 * ADD Layout indirection for input
 * ADD New input display segmented control with : btn-group and radio-btn-group
 * TEC Rewrite the way inputs are build. Each input is now given only its data.
+* ADD Possibility to put an HTML description to a field with sablono.
 
 
 ## 0.3.5-SNAPSHOT

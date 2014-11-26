@@ -178,7 +178,11 @@
                                                      :desc "Only alphanumeric"
                                                      :ph "AB0123456789"}
                                         :person/name {:label "Name"}
-                                        :person/email {:desc "You will never receive spam."}
+                                        :person/email {:desc "You will never receive spam."
+                                                       :html [:div {:class "description"} "I agree the " [:a {:href   "http://www.myferrylink.fr/fret-ferry/conditions-vente?packedargs=site%3DSF_Freight"
+                                                                                                                :target "_blank"} "General Sales and Transport Conditions"]
+                                                              " and the " [:a {:href   "http://www.myferrylink.fr/fret-ferry/infos-pratiques/code-practice-fr?packedargs=site%3DSF_Freight"
+                                                                             :target "_blank"} "the Code of Practice"]]}
                                         :person/email-confirm {:desc "Sorry copy and paste deactivated."}
                                         :person/birthdate {:label "Birthday"}
                                         :person/first-name {:label "Firstname"}
@@ -212,7 +216,11 @@
                                         :person/vat {:label "TVA"
                                                      :desc "Charactères alphanumeriques"
                                                      :ph "AB0123456789"}
-                                        :person/email {:desc "Nous n'envoyons jamais de spam, promis !"}
+                                        :person/email {:desc "hdkjfhsjfhskdj"
+                                                       :html [:div {:class "description"} "J'accepte les " [:a {:href   "http://www.myferrylink.fr/fret-ferry/conditions-vente?packedargs=site%3DSF_Freight"
+                                                                                                                :target "_blank"} "Conditions Générales de Vente et de Transport"]
+                                                              " et le " [:a {:href   "http://www.myferrylink.fr/fret-ferry/infos-pratiques/code-practice-fr?packedargs=site%3DSF_Freight"
+                                                                             :target "_blank"} "Le Code of Practice"]]}
                                         :person/date-retour {:label "Date de retour"}
                                         :person/email-confirm {:label "Confirmation de l'email"}
                                        :person/first-name {:label "Prénom"}

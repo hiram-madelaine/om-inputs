@@ -15,7 +15,7 @@
                  ;[com.cemerick/piggieback "0.1.3"]
                  ;[weasel "0.4.0-SNAPSHOT"]
                  ;[leiningen "2.5.0"]
-                 ]
+                 [sablono "0.2.22"]]
 
   :plugins [[lein-cljsbuild "1.0.4-SNAPSHOT"]
             [lein-figwheel "0.1.5-SNAPSHOT"]

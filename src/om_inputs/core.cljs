@@ -15,7 +15,8 @@
             [om-inputs.i18n :as i :refer [comp-i18n label desc desc? data error ph info]]
             [om-inputs.typing-controls :refer [build-typing-control]]
             [jkkramer.verily :as v]
-            [goog.events]))
+            [goog.events]
+            [sablono.core :as html :refer-macros [html]]))
 
 (enable-console-print!)
 
@@ -430,6 +431,7 @@
                        (i/label opts))
             (when (:labeled opts) (dom/label #js {:className "badge"} (:value kbs)))
             (when (i/desc opts) (dom/div #js {:className "description"} (i/desc opts)))
+            (when (i/html-desc opts) (html (i/html-desc opts)))
             (dom/div #js {:className "input-container"}
                      (let [opts (assoc-in opts [:attrs :className] "form-control")]
                        (magic-input {:chan chan :opts opts}))
@@ -464,7 +466,8 @@
                                                                  :type   "error"
                                                                  :action #(put! chan [:kill-mess (:k opts)])}
                                                          :state {:mess mess}}))))
-            (when (i/desc opts) (dom/p #js {:className "description"} (i/desc opts))))))
+            (when (i/desc opts) (dom/p #js {:className "description"} (i/desc opts)))
+            (when (i/html-desc opts) (html (i/html-desc opts))))))
 
 
 (defn build-input

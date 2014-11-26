@@ -15,7 +15,8 @@
                             (s/optional-key :desc) s/Str
                             (s/optional-key :ph) s/Str
                             (s/optional-key :info) s/Str
-                            (s/optional-key :info-title) s/Str})
+                            (s/optional-key :info-title) s/Str
+                            (s/optional-key :html) s/Any})
 
 (def sch-i18n-enum-labels {(s/optional-key :data) {s/Any sch-i18n-field-labels}})
 
@@ -112,6 +113,16 @@
   [i18n k]
   (not (nil? (desc i18n k))))
 
+(defn html-desc
+  [opts]
+  (get-in opts [:i18n :html]))
+
+
+(defn html-desc?
+  [opts]
+  (not (nil? (html-desc opts))))
+
+
 (defn data
   [i18n]
   (get-in i18n [:data]))
@@ -135,3 +146,4 @@
 (defn info-title
   [opts]
   (get-in opts [:i18n :info-title]))
+
