@@ -11,12 +11,15 @@
    [goog.net.XhrIo :as xhr]
    [cljs.reader :as reader]
    [goog.events :as events]
-   [figwheel.client :as fw :include-macros true])
+   [figwheel.client :as fw :include-macros true]
+   [weasel.repl :as ws-repl])
    (:import [goog.net XhrIo]
            goog.net.EventType
            [goog.events EventType]
            [goog.ui IdGenerator]))
 
+
+(ws-repl/connect "ws://localhost:9001")
 
 (def lang-sch {:lang (s/enum "en" "fr")})
 
@@ -114,11 +117,12 @@
      :action {:one-shot true
               :no-reset false
               :async true}
-     :init {:person/gender "Ms"
+     :init {
+            ;:person/gender "Ms"
 ;;             :person/date-aller (at 0)
             :person/vat "FR7589272"
             :person/size 187.50
-            :person/age 3
+            ;:person/age 3
             :person/birthdate (tomorrow)
             :person/email "h@h"
             :person/email-confirm "h@h"
@@ -130,11 +134,12 @@
      :person/date-aller {:type "now"
                          :labeled true}
      :person/date-retour {:labeled true}
-     :person/age {:type "range-btn-group"
-                  :attrs {:min "1" :max "5"}
+     :person/age {:type "stepper"
+                 :attrs {:min "0" :max "10" :step 2}
                   :labeled true}
       :person/married {:layout "in-line"}
-     :validations [[:after (at 0) :person/date-aller :date-aller]
+     :validations [[:positive [:person/age] :positive]
+                   [:after (at 0) :person/date-aller :date-aller]
 ;;                    [:greater [:person/date-retour :person/date-aller] :date-retour]
                    [:email [:person/email-confirm :person/email] :bad-email]
                    [:equal [:person/email-confirm :person/email] :email-match]]}))
@@ -166,7 +171,9 @@
  app
  app-state
  {:target (. js/document (getElementById "person"))
-  :shared {:i18n {"en" {:errors {:date-retour "Date aller avant date aller"
+  ;:descriptor (om/no-local-descriptor om/no-local-state-methods)
+  :shared {:i18n {"en" {:errors {:positive "Value must be positive"
+                                 :date-retour "Date aller avant date aller"
                                  :email-match "email and confirmation email doesn't match"
                                  :bad-email "The format of the email is invalid"
                                  :person-size-min-length "Too short !"
@@ -190,7 +197,8 @@
                                         :person/gender {:label "Gender"
                                                         :data {"M" {:label "Mister"}
                                                                "Ms" {:label "Miss"}}}}}
-                  "fr" {:errors {:date-aller "Il n'est pas possible de réserver dans le passé"
+                  "fr" {:errors {:positive "La valeur doit être positive"
+                                 :date-aller "Il n'est pas possible de réserver dans le passé"
                                  :date-retour "Date aller avant date aller"
                                  :email-match "email et la confirmation de l'email ne correspondent pas"
                                  :mandatory "Cette information est obligatoire"
