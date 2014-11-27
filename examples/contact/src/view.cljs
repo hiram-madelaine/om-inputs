@@ -116,7 +116,8 @@
      :create-person {:className "visible"}
      :action {:one-shot true
               :no-reset false
-              :async true}
+              :async true
+              :attrs {:tabIndex 5}}
      :init {
             ;:person/gender "Ms"
 ;;             :person/date-aller (at 0)
@@ -128,11 +129,15 @@
             :person/email-confirm "h@h"
             :person/married true
             :person/name "MADELAINE"}
-     ; :order [:person/date-aller  :person/date-retour :person/first-name :person/name :person/vat :person/email :person/email-confirm :person/gender :person/birthdate :person/age :person/size :person/married]
-     :person/first-name {:layout "horizontal"}
-      :person/gender {:type "btn-group"}
+     :order [:person/date-aller  :person/date-retour :person/first-name :person/name :person/vat :person/email :person/email-confirm :person/gender :person/birthdate :person/age :person/size :person/married]
+     :person/first-name {:layout "horizontal"
+                         :attrs {:tabIndex 1}}
+     :person/gender {:type "btn-group"}
+     :person/email {:attrs {:tabIndex 4}}
      :person/date-aller {:type "now"
-                         :labeled true}
+                         :labeled true
+                         :attrs {:tabIndex 1}}
+     :person/vat {:attrs {:tabIndex 2}}
      :person/date-retour {:labeled true}
      :person/age {:type "stepper"
                  :attrs {:min "0" :max "10" :step 2}

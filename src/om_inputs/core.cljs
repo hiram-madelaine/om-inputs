@@ -127,7 +127,6 @@
   (let [{:keys [min max step value]} attrs
         plus (if step (partial + (long step)) inc)
         minus (if step (partial + (- (long step))) dec)]
-    (prn (minus value))
    (dom/div (clj->js (merge attrs {:className "btn-group"}))
             (dom/button #js {:type      "button"
                              :className "btn btn-default"
@@ -278,8 +277,7 @@
     om/IDidMount
     (did-mount
      [_]
-     (let [_ (prn (str "tooltip : " (full-name (:k opts))))
-           tool (om/get-node owner (str (:k opts) "-tooltip"))
+     (let [tool (om/get-node owner (str (:k opts) "-tooltip"))
            elem (.getElementById js/document (full-name (:k opts)))
            rect-tool (.getBoundingClientRect tool)
            rect (.getBoundingClientRect elem)
@@ -323,7 +321,7 @@
 
 
 (defn button-view
-  [app owner {:keys [k labels comp-name]}]
+  [app owner {:keys [k labels comp-name attrs]}]
   (reify
     om/IRenderState
     (render-state
@@ -333,11 +331,11 @@
            button-state (get-in state [:action-state k])
            btn-style (when button-state (name button-state))]
        (dom/div nil
-                (dom/button #js {:type  "button"
-                                 :id (str (full-name comp-name) "-" (name k))
-                                 :disabled (= "disabled" btn-style)
-                                 :className (styles "btn btn-primary has-spinner has-error" btn-style)
-                                 :onClick #(put! chan  k)}
+                (dom/button (clj->js (merge attrs {:type      "button"
+                                           :id        (str (full-name comp-name) "-" (name k))
+                                           :disabled  (= "disabled" btn-style)
+                                           :className (styles "btn btn-primary has-spinner has-error" btn-style)
+                                           :onClick   #(put! chan k)}))
                            (label labels k)
                             (dom/span #js {:className "error"}
                                      (dom/i #js {:className "fa fa-ban text-danger"}))
@@ -667,10 +665,12 @@
                                (dom/div #js {:className "panel-button"}
                                         (om/build button-view app {:state state :opts {:k :action
                                                                                        :labels (:action labels)
-                                                                                       :comp-name comp-name}})
+                                                                                       :comp-name comp-name
+                                                                                       :attrs (get-in opts [:action :attrs])}})
                                         (om/build button-view app {:state state :opts {:k :clean
                                                                                        :labels (:clean labels)
-                                                                                       :comp-name comp-name}})))))))))))
+                                                                                       :comp-name comp-name
+                                                                                       :attrs (get-in opts [:action :attrs])}})))))))))))
 
 
 

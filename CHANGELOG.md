@@ -2,6 +2,7 @@
 
 * ADD new input diplay : stepper -/+ for s/Int
 * ADD Possibility to put an HTML description to a field with sablono.
+* ADD HTML Attributes for action and clean buttons. {:action {:attrs {:tabIndex 10}}
 
 ## 0.3.6-SNAPSHOT
 
