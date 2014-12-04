@@ -658,7 +658,7 @@
          om/IRenderState
          (render-state
           [_ {:keys [chan inputs action-state dyn-opts] :as state}]
-          (let [labels (comp-i18n owner comp-name schema)
+          (let [labels (comp-i18n owner comp-name schema opts)
                 title (get-in labels [:title])
                 opts (merge-with merge opts dyn-opts)
                 comp-class (get-in opts [comp-name :className])]

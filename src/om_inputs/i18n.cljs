@@ -73,7 +73,10 @@
                  (some #{(browser-lang)} langs)
                  (first langs))]
     (when (not= lang language) (prn (str "Warning - Check your i18n language configuration; you set : " lang " but found no labels. Switching to : " language)))
-    (s/validate (build-i18n-schema sch) (get-in full-i18n [language comp-name]))))
+    (let [labels (get-in full-i18n [language comp-name])]
+     (if  (:validate-i18n-keys opts)
+       (s/validate (build-i18n-schema sch) labels)
+       labels))))
 
 
 
@@ -83,11 +86,11 @@
 
 (defn comp-i18n
   "Get the specific i18n labels for the component and the language"
-  [owner comp-name sch]
+  [owner comp-name sch opts]
   (let [full-i18n (om/get-shared owner :i18n)
         lang (om/get-state owner :lang)]
     (when full-i18n
-      (s/validate I18NSchema full-i18n)
+      (when (:validate-i18n-keys opts) (s/validate I18NSchema full-i18n))
       (i18n-comp-lang-memo sch comp-name lang full-i18n))))
 
 

@@ -11,6 +11,7 @@
 * ADD Layout indirection for input
 * ADD New input display segmented control with : btn-group and radio-btn-group
 * TEC Rewrite the way inputs are build. Each input is now given only its data.
+* ADD Option :validate-i18n-keys to turn off/on i18n Map. Turn off when you put extra labels.
 
 
 ## 0.3.5-SNAPSHOT
