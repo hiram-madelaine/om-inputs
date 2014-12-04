@@ -20,6 +20,9 @@
 
 (enable-console-print!)
 
+
+(s/set-compile-fn-validation! false)
+
 ;_________________________________________________
 ;                                                 |
 ;          Events Utils                           |
@@ -60,18 +63,25 @@
   [i18n code]
   (get-in i18n [:data code :label] (if (keyword? code) (full-name code) code)))
 
+(defn choose-iterator
+  "Choose if we iterate on the values of the schema enum or on the keys of the i18n data."
+  [{:keys [i18n k-sch label-order]}]
+  (if-let [data (and label-order (get-in i18n [:data]))]
+       (keys data)
+       (:vs k-sch)))
+
 (defmethod magic-input "enum"
-  [{{:keys [attrs i18n k-sch]} :opts}]
+  [{{:keys [attrs i18n] :as options} :opts}]
   (apply dom/select (clj->js attrs)
          (dom/option #js {:value ""} "")
          (map (fn [code]
                 (dom/option #js {:value code}
                             (enum-label i18n code)))
-              (:vs k-sch))))
+              (choose-iterator options))))
 
 
 (defn radio-group
-  [style {{:keys [attrs k i18n k-sch]} :opts chan :chan}]
+  [style {{:keys [attrs k i18n] :as options} :opts chan :chan}]
   (apply dom/div #js {:className "input-group"}
          (map (fn [code]
                 (dom/div #js {:className style}
@@ -83,7 +93,7 @@
                                                                       :value     code
                                                                       :onClick   #(put! chan [k code])})))
                                     (enum-label i18n code))))
-              (:vs k-sch))))
+              (choose-iterator options))))
 
 (defmethod magic-input "radio-group"
   [m]
@@ -108,11 +118,11 @@
                 (enum-label i18n code))))
 
 (defmethod magic-input "btn-group"
-  [{{:keys [attrs k i18n k-sch]} :opts chan :chan}]
+  [{{:keys [attrs k i18n] :as options} :opts chan :chan}]
   (apply dom/div (clj->js (merge attrs {:className "btn-group"}))
          (map
            (make-segmented "button" k (:value attrs) i18n chan)
-           (:vs k-sch))))
+           (choose-iterator options))))
 
 (defmethod magic-input "range-btn-group"
   [{{:keys [attrs i18n k]} :opts chan :chan}]
@@ -172,6 +182,13 @@
                                     :onClick        #(put! chan [k (js/Date.)])}))))
 
 
+(defmethod magic-input "email"
+  [{{:keys [attrs]} :opts}]
+  (dom/input (clj->js (merge  {:type "email"
+                               :autoCapitalize "off"
+                               :autoCorrect "off"} attrs))))
+
+
 (defmethod magic-input :default
   [{{:keys [attrs]} :opts}]
   (dom/input (clj->js attrs)))
@@ -212,7 +229,7 @@
     v))
 
 
-(s/defn ^:always-validate  build-init-state :- sch-business-state
+(s/defn  build-init-state :- sch-business-state
   "Build the initial business local state backing the inputs in the form.
    It accepts init values from the options
   TODO validate that the value is correct"
@@ -348,29 +365,26 @@
 ;        Syntactic sugar to access business state           |
 ;___________________________________________________________|
 
-(s/defn ^:always-validate get-in-bs
+(s/defn get-in-bs
             [m :- sch-business-state
              f :- s/Keyword
              k :- s/Keyword]
             (get-in m [f k]))
 
 
-(s/defn ^:always-validate
-  fvalue :- s/Any
+(s/defn fvalue :- s/Any
         [m k]
         (get-in-bs m k :value))
 
-(s/defn ^:always-validate
-  fvalid :- (s/maybe s/Bool)
+(s/defn fvalid :- (s/maybe s/Bool)
         [m k]
         (get-in-bs m k :valid))
 
-(s/defn ^:always-validate
-  frequired :- s/Bool
+(s/defn frequired :- s/Bool
         [m k]
             (get-in-bs m k :required))
 
-(s/defn ^:always-validate ferrors :- va/sch-errors-list
+(s/defn ferrors :- va/sch-errors-list
         [m k]
         (get-in-bs m k :error))
 
@@ -518,7 +532,7 @@
   {:init :in-error
    :in-error :in-error})
 
-(s/defn ^:always-validate
+(s/defn
   make-input-comp
   "Build an input form Om component based on a prismatic/Schema"
   ([comp-name :- s/Keyword
@@ -670,7 +684,7 @@
                                         (om/build button-view app {:state state :opts {:k :clean
                                                                                        :labels (:clean labels)
                                                                                        :comp-name comp-name
-                                                                                       :attrs (get-in opts [:action :attrs])}})))))))))))
+                                                                                       :attrs (get-in opts [:clean :attrs])}})))))))))))
 
 
 

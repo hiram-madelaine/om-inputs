@@ -12,14 +12,54 @@
    [cljs.reader :as reader]
    [goog.events :as events]
    [figwheel.client :as fw :include-macros true]
-   [weasel.repl :as ws-repl])
+   [weasel.repl :as ws-repl]
+   [jkkramer.verily :as v :refer [validation->fn]]
+   [om-inputs.validation :as va]
+   [om-inputs.verily-ext :as ve])
    (:import [goog.net XhrIo]
            goog.net.EventType
            [goog.events EventType]
            [goog.ui IdGenerator]))
 
 
-(ws-repl/connect "ws://localhost:9001")
+#_((v/validate [78] [[:string]])
+
+ ((v/validations->fn [[:vat [:person/age] :positive]]) {:person/age -67})
+
+ ((v/combine [:positive [:person/age] :positive]) {:person/age -67})
+
+ (map v/validation->fn [[:positive [:person/age] :positive]
+                        [:int [:person/age] :int]])
+
+
+
+ (validation->fn [:positive [:person/age] :positive])
+
+
+
+
+ (defmethod validation->fn :vat
+   [vspec]
+   (fn [vat]
+     "VAT COntrol"))
+
+ (v/validate {:person/age -67} [[:vat [:person/age] :positive]])
+
+ (defmethod va/valider :vat
+   [vspec]
+   (fn [vat]
+     "VAT COntrol"))
+
+
+ (map v/validation->fn [[:positive [:person/age] :positive]
+                        [:vat [:person/age] :int]])
+
+
+ ((v/validations->fn [[:vat [:person/age] :vat]]) {:person/age -67})
+
+ (va/valider [:vat]))
+
+(ws-repl/connect "ws://192.168.1.42:9001")
 
 (def lang-sch {:lang (s/enum "en" "fr")})
 
@@ -50,12 +90,12 @@
     (events/listen xhr goog.net.EventType.ERROR
       (fn [e]
         (on-error (.getResponseText xhr))))
-    (.send xhr url)))
+    (.send xhr url )))
 
 (defn async-action
   [app owner value out]
   (edn-xhr {:method :get
-            :url "https://api.github.com/users/hiram-madelaine/repos"
+            :url "http://ec.europa.eu/taxation_customs/vies/vatResponse.html/memberStateCode=FR&number=89753948272"
             :on-complete (fn [e]
                            (prn e)
                            (go (<! (timeout 2000))
@@ -81,22 +121,41 @@
                                           :data {"en" "Anglais"
                                                  "fr" "Français"}}}}}}})
 
+#_(clojure.core/defrecord EnumSchema [vs]
+                        Schema
+                        (walker [this]
+                                (clojure.core/fn [x]
+                                                 (if (some #{x} vs)
+                                                   x
+                                                   (macros/validation-error this x (list vs (utils/value-name x))))))
+                        (explain [this] (cons 'enum vs)))
+
+#_(clojure.core/defn enum
+                   "A value that must be = to some element of vs."
+                   [& vs]
+                   (EnumSchema. vs))
+
+
+
+
+
 (def input-view (make-input-comp
   :create-person
   {:person/first-name (s/maybe s/Str)
    :person/date-aller s/Inst
    (s/optional-key :person/date-retour) s/Inst
-   :person/immat (s/Regex #"^[A-Z0-9]{1,12}")
+   ; :person/immat (s/Regex #"^[A-Z0-9]{1,12}")
    :person/name s/Str
    :person/email s/Str
    :person/email-confirm s/Str
-   :person/vat (s/Regex #"^[A-Z]{1,2}[0-9]{0,12}$")
+   :person/vat s/Str
    :person/birthdate s/Inst
    :person/size (s/named s/Num "size")
    :person/age  (s/named s/Int "age")
-   :person/gender (s/enum "M" "Ms")
+   :person/gender  (s/enum "ALB" "DZA" "GER" "AND" "ARG" "ARM" "ZZZ" "AUT" "AZE" "BEL" "BIE" "BIH" "BRA" "BGR" "CDN" "HRV" "DNK" "EGY" "ESP" "EST" "USA" "FIN" "FRA" "GEO" "GRC" "HUN" "IRL" "ISL" "ISR" "ITA" "KAZ" "LVA" "LIE" "LTU" "LUX" "MKD" "MLT" "MAR" "MCO" "MNE" "NOR" "UZB" "NLD" "POL" "PRT" "CZE" "ROM" "GBR" "RUS" "SEN" "SRB" "SVK" "SVN" "SWE" "CHE" "TUN" "TUR" "UKR")  #_(s/enum "B" "AA"  "Ms" "M"  "3" "A" "_")
    :person/married (s/eq true)}
-   async-action
+  async-action
+  ;async-action
                  #_(fn [a b c]
      (throw (js/Error. "Oops")))
                  #_(fn [app owner value chan]
@@ -117,7 +176,7 @@
      :action {:one-shot true
               :no-reset false
               :async true
-              :attrs {:tabIndex 5}}
+              :attrs {:tabIndex 0}}
      :init {
             ;:person/gender "Ms"
 ;;             :person/date-aller (at 0)
@@ -131,19 +190,25 @@
             :person/name "MADELAINE"}
      :order [:person/date-aller  :person/date-retour :person/first-name :person/name :person/vat :person/email :person/email-confirm :person/gender :person/birthdate :person/age :person/size :person/married]
      :person/first-name {:layout "horizontal"
-                         :attrs {:tabIndex 1}}
-     :person/gender {:type "btn-group"}
-     :person/email {:attrs {:tabIndex 4}}
+                         :attrs {:tabIndex 0}}
+     :person/gender {;:type "btn-group"
+                     :label-order true}
+     :person/email {:type "email"
+                    :attrs {:tabIndex 0}}
+     :person/email-confirm {:type "email"}
      :person/date-aller {:type "now"
                          :labeled true
-                         :attrs {:tabIndex 1}}
-     :person/vat {:attrs {:tabIndex 2}}
+                         :attrs {:tabIndex 0}}
+     :person/vat {:attrs {:tabIndex 0
+                          :autoCapitalize "characters"}}
      :person/date-retour {:labeled true}
-     :person/age {:type "stepper"
-                 :attrs {:min "0" :max "10" :step 2}
+     :person/size {:attrs {:type "number"}}
+     :person/age {:type "range-btn-group"
+                  :attrs {:min "0" :max "10" :step 2}
                   :labeled true}
       :person/married {:layout "in-line"}
-     :validations [[:positive [:person/age] :positive]
+     :validations [[:vat [:person/vat] :vat]
+                   [:positive [:person/age] :positive]
                    [:after (at 0) :person/date-aller :date-aller]
 ;;                    [:greater [:person/date-retour :person/date-aller] :date-retour]
                    [:email [:person/email-confirm :person/email] :bad-email]
@@ -170,6 +235,95 @@
               (dom/a #js {:href "#"} (dom/img #js {:src "img/fr.png" :className "flag" :onClick #(om/set-state! owner [:lang] "fr")}))
               (dom/a #js {:href "#"} (dom/img #js {:src "img/gb.png" :className "flag" :onClick #(om/set-state! owner [:lang] "en")})))
       (om/build input-view (:client app) {:state state})))))
+
+
+
+(defn sort-pays-by-labels [liste]
+  (into (sorted-map-by  (fn [e1 e2] (compare (:label (get liste e1)) (:label (get liste e2))))) liste))
+
+(def liste-pays {"ALB" {:label "ALBANIE"},
+                 "GER" {:label "ALLEMAGNE"},
+                 "ZZZ" {:label "AUTRES"},
+                 "AUT" {:label "AUTRICHE"},
+                 "BEL" {:label "BELGIQUE"},
+                 "BIH" {:label "BOSNIE HERZEGOVINE"},
+                 "BGR" {:label "BULGARIE"},
+                 "HRV" {:label "CROATIE"},
+                 "DNK" {:label "DANEMARK"},
+                 "ESP" {:label "ESPAGNE"},
+                 "EST" {:label "ESTONIE"},
+                 "FIN" {:label "FINLANDE"},
+                 "FRA" {:label "FRANCE"},
+                 "GRC" {:label "GRECE"},
+                 "HUN" {:label "HONGRIE"},
+                 "IRL" {:label "IRLANDE"},
+                 "ITA" {:label "ITALIE"},
+                 "LVA" {:label "LETTONIE"},
+                 "LTU" {:label "LITUANIE"},
+                 "LUX" {:label "LUXEMBOURG"},
+                 "MKD" {:label "MACEDOINE"},
+                 "MAR" {:label "MAROC"},
+                 "MNE" {:label "MONTENEGRO"},
+                 "NOR" {:label "NORVEGE"},
+                 "NLD" {:label "PAYS-BAS"},
+                 "POL" {:label "POLOGNE"},
+                 "PRT" {:label "PORTUGAL"},
+                 "CZE" {:label "REPUBLIQUE TCHEQUE"},
+                 "ROM" {:label "ROUMANIE"},
+                 "GBR" {:label "ROYAUME UNI"},
+                 "RUS" {:label "RUSSIE"},
+                 "SRB" {:label "SERBIE"},
+                 "SVK" {:label "SLOVAQUIE"},
+                 "SVN" {:label "SLOVENIE"},
+                 "SWE" {:label "SUEDE"},
+                 "CHE" {:label "SUISSE"},
+                 "TUR" {:label "TURQUIE"},
+                 "UKR" {:label "UKRAINE"}})
+
+(def liste-pays-sorted-by-labels (sort-pays-by-labels liste-pays))
+
+
+(def liste-pays-en {"ALB" {:label "ALBANIA"},
+                    "AUT" {:label "AUSTRIA"},
+                    "BEL" {:label "BELGIUM"},
+                    "BIH" {:label "BOSNIA HERZEGOVINA"},
+                    "BGR" {:label "BULGARIA"},
+                    "HRV" {:label "CROATIA"},
+                    "CZE" {:label "CZECH REPUBLIC"},
+                    "DNK" {:label "DENMARK"},
+                    "EST" {:label "ESTONIA"},
+                    "FIN" {:label "FINLAND"},
+                    "FRA" {:label "FRANCE"},
+                    "GER" {:label "GERMANY"},
+                    "GBR" {:label "GREAT BRITAIN"},
+                    "GRC" {:label "GREECE"},
+                    "HUN" {:label "HUNGARY"},
+                    "IRL" {:label "IRELAND"},
+                    "ITA" {:label "ITALY"},
+                    "LVA" {:label "LATVIA"},
+                    "LTU" {:label "LITHUANIA"},
+                    "LUX" {:label "LUXEMBOURG"},
+                    "MKD" {:label "MACEDONIA"},
+                    "MNE" {:label "MONTENEGRO"},
+                    "MAR" {:label "MOROCCO"},
+                    "NLD" {:label "NETHERLANDS"},
+                    "NOR" {:label "NORWAY"},
+                    "ZZZ" {:label "OTHERS"},
+                    "POL" {:label "POLAND"},
+                    "PRT" {:label "PORTUGAL"},
+                    "ROM" {:label "ROMANIA"},
+                    "RUS" {:label "RUSSIA"},
+                    "SRB" {:label "SERBIA"},
+                    "SVK" {:label "SLOVAKIA"},
+                    "SVN" {:label "SLOVENIA"},
+                    "ESP" {:label "SPAIN"},
+                    "SWE" {:label "SWEDEN"},
+                    "CHE" {:label "SWITZERLAND"},
+                    "TUR" {:label "TURKEY"},
+                    "UKR" {:label "UKRAINE"}})
+
+(def liste-pays-en-sorted-by-labels (sort-pays-by-labels liste-pays-en))
+
 
 (defn main []
  (om/root
@@ -200,9 +354,10 @@
                                         :person/first-name {:label "Firstname"}
                                         :person/size {:label "Size (cm)"}
                                         :person/gender {:label "Gender"
-                                                        :data {"M" {:label "Mister"}
+                                                        :data liste-pays-en-sorted-by-labels #_{"M" {:label "Mister"}
                                                                "Ms" {:label "Miss"}}}}}
-                  "fr" {:errors {:positive "La valeur doit être positive"
+                  "fr" {:errors {:vat "Votre identification de TVA semble erroné"
+                                 :positive "La valeur doit être positive"
                                  :date-aller "Il n'est pas possible de réserver dans le passé"
                                  :date-retour "Date aller avant date aller"
                                  :email-match "email et la confirmation de l'email ne correspondent pas"
@@ -243,8 +398,10 @@
                                                         :desc "Pas de mensonge"
                                                         }
                                         :person/gender {:label "Genre"
-                                                       :data {"M" {:label "Monsieur"}
-                                                              "Ms" {:label "Madame"}}}}}}}}))
+                                                       :data liste-pays-sorted-by-labels
+                                                       #_{"M" {:label "Monsieur"}
+                                                              "Ms" {:label "Madame"}}
+                                                        }}}}}}))
 
 
 (fw/watch-and-reload

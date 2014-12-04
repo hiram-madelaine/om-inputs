@@ -3,11 +3,16 @@
   (:require [om.core :as om :include-macros true]
             [clojure.set :as st]
             [clojure.string :as str]
-            [jkkramer.verily :as v]
+            [jkkramer.verily :as v :refer [validation->fn]]
             [schema.core :as s :include-macros true]
             [schema.coerce :as coerce]
             [om-inputs.schemas :as su :refer [ sch-field sch-business-state sch-field-state]]
             [om-inputs.date-utils :as d]))
+
+
+#_(defmulti valider (fn [vspec] (first vspec)))
+
+
 
 
 ;___________________________________________________________
@@ -150,7 +155,7 @@
 ;___________________________________________________________|
 
 
-(s/defn ^:always-validate  handle-errors :- sch-business-state
+(s/defn handle-errors :- sch-business-state
   "Set valid to false for each key in errors, true if absent"
   [state :- sch-business-state
    errs :- sch-errors]
@@ -177,7 +182,7 @@
 
 
 
-(s/defn ^:always-validate bs->unit-map :- {s/Keyword s/Any}
+(s/defn bs->unit-map :- {s/Keyword s/Any}
   "Extract map fk->value for a single field."
   [bs :- sch-business-state
    fk :- s/Keyword]
@@ -185,15 +190,14 @@
     {fk (:value m)}))
 
 
-(s/defn ^:always-validate business-state->map :- {s/Keyword s/Any}
+(s/defn business-state->map :- {s/Keyword s/Any}
   "Transform the business local state into final map"
   [bs :- sch-business-state]
   (into {} (for [[k _] bs]
               (bs->unit-map bs k))))
 
 
-(s/defn ^:always-validate
-  pre-validation :- {s/Keyword s/Any}
+(s/defn pre-validation :- {s/Keyword s/Any}
   "Create the map that will be validated by the Schema :
   Only keeps :
   - required keys
@@ -204,8 +208,7 @@
       business-state->map))
 
 
-(s/defn ^:always-validate
-  sch-glo->unit :- {s/Keyword s/Any}
+(s/defn sch-glo->unit :- {s/Keyword s/Any}
   "Transform a Schema into a map of key -> individual Schema"
   [sch ]
   (into {} (for [ [k t] sch]
@@ -230,8 +233,7 @@
 ;___________________________________________________________|
 
 
-(s/defn ^:always-validate
-  validate? :- s/Bool
+(s/defn validate? :- s/Bool
   "Indicates if a field must be validated :
   - required field
   - optional field with non blank values"
@@ -241,8 +243,7 @@
       (not (str/blank? value)))))
 
 
-(s/defn ^:always-validate
-  add-field-error :- sch-business-state
+(s/defn add-field-error :- sch-business-state
   "Handle errors for a single field"
   [state :- sch-business-state
    errs :- sch-errors]
@@ -251,8 +252,7 @@
                 (assoc-in [e :valid] false)
                 (assoc-in [e :error] (e errs)))) state (keys errs)))
 
-(s/defn ^:always-validate
-  remove-field-error :- sch-business-state
+(s/defn remove-field-error :- sch-business-state
   [state :- sch-business-state
    k :- s/Keyword]
   (-> state
@@ -261,7 +261,7 @@
 
 
 
-(s/defn ^:always-validate remove-dependant-errors :- [s/Keyword]
+(s/defn remove-dependant-errors :- [s/Keyword]
   "Remove the cross field errors keys from the validation errors.
   This prevent errors from showing when inline validation occurs."
   [cross-errs :- #{s/Keyword}
