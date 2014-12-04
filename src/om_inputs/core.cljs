@@ -21,7 +21,7 @@
 (enable-console-print!)
 
 
-(s/set-compile-fn-validation! false)
+#_(s/set-compile-fn-validation! false)                      ;Problem with Schema 0.3.3
 
 ;_________________________________________________
 ;                                                 |
