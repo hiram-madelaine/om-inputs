@@ -5,7 +5,7 @@
   :dependencies [[org.clojure/clojure "1.6.0"]
                  [org.clojure/clojurescript "0.0-2371" :scope "provided"]
                  [org.clojure/core.async "0.1.346.0-17112a-alpha"]
-                 [om "0.8.0-alpha1"]
+                 [om "0.8.0-alpha1" :scope "provided"]
                  [prismatic/dommy "0.1.2"]
                  [prismatic/schema "0.3.3"]
                  [com.facebook/react "0.11.1"]
@@ -14,7 +14,7 @@
                  [com.cemerick/piggieback "0.1.3"]
                  [weasel "0.4.2"]
                  [sablono "0.2.22"]
-                 [clj-vat "0.1.2"]]
+                 [clj-vat "0.1.2" :scope "provided"]]
 
   :plugins [[lein-cljsbuild "1.0.4-SNAPSHOT"]
             [lein-figwheel "0.1.5-SNAPSHOT"]
