@@ -67,7 +67,7 @@
   the state
   the browser
   the first language available"
-  [sch comp-name lang full-i18n]
+  [sch comp-name lang full-i18n opts]
   (let [langs (keys full-i18n)
         language (or (some #{lang} langs)
                  (some #{(browser-lang)} langs)
@@ -91,7 +91,7 @@
         lang (om/get-state owner :lang)]
     (when full-i18n
       (when (:validate-i18n-keys opts) (s/validate I18NSchema full-i18n))
-      (i18n-comp-lang-memo sch comp-name lang full-i18n))))
+      (i18n-comp-lang-memo sch comp-name lang full-i18n opts))))
 
 
 
