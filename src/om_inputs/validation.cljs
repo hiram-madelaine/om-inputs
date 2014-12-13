@@ -312,7 +312,8 @@
 
 
 (defn field-validation
-  "Validation of a single field"
+  "Validation of a single field
+   TODO Refactoring"
   [fk inputs state]
   (let [{:keys [unit-validators]} state
         unit (bs->unit-map inputs fk)]
@@ -321,7 +322,7 @@
                         (verily-validation fk unit inputs state))]
         (add-field-error inputs errs)
         (remove-field-error inputs fk))
-      inputs)))
+      (remove-field-error inputs fk))))
 
 (defn field-validation!
   "Validate a single field of the local business state and update the local state."

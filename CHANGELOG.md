@@ -5,6 +5,7 @@
 * ADD HTML Attributes for action and clean buttons. {:action {:attrs {:tabIndex 10}}
 * ADD For s/enum add the possibility to iterate over the i18n for order reason : {:label-order true} Only i18n data are shwon.
 * TECH upgrade to schema 0.3.3. Add s/set-compile-fn-validation! to false.
+* FIX An optionnal field in error was not valid when empty.
 
 ## 0.3.6-SNAPSHOT
 
