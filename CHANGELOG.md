@@ -6,6 +6,7 @@
 * ADD For s/enum add the possibility to iterate over the i18n for order reason : {:label-order true} Only i18n data are shwon.
 * TECH upgrade to schema 0.3.3. Add s/set-compile-fn-validation! to false.
 * FIX An optionnal field in error was not valid when empty.
+* ADD Possibility to call a fn on the typed inputs i.e {:post-typing #(.toUpperCase %)}  
 
 ## 0.3.6-SNAPSHOT
 

@@ -56,5 +56,6 @@
               (s/optional-key :attrs)     s/Any
               (s/optional-key :className) s/Str
               (s/optional-key :layout)    s/Str
-              (s/optional-key :label-order)   s/Bool}})
+              (s/optional-key :label-order)   s/Bool
+              (s/optional-key :post-typing) s/Any}})
 

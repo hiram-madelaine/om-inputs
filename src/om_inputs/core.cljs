@@ -636,6 +636,8 @@
                    :kill-mess (om/update-state! owner [:inputs v] #(dissoc % :error) )
                    :validate (va/field-validation! owner v)
                    (let [coerce (get typing-controls k (fn [n _] n))
+                         ptfn (get-in opts [k :post-typing] identity)
+                         v (ptfn v)
                          old-val (om/get-state owner [:inputs k :value])]
                      (om/set-state! owner [:inputs k :value] (coerce v old-val)))))
                (recur)))))
