@@ -97,6 +97,14 @@ The callback function takes the cursor app state, the owner and the entity.
 
 `(fn [app owner entity])`
 
+### Asynchronous action
+
+An action can also be asynchronous. In this case the callback fn must have 4 args :
+`(fn [app owner entity chan])`
+The fourth argument is a core.async channel in wich the fn puts the succes or failure of the operation.
+* :ok for success ;
+* :ko in case of failure.
+
 
 ### Build an Om input component
 
@@ -173,7 +181,6 @@ When clicking the action button, the form is validated according to the Schema :
 
 * A required input must have a non blank value ;
 * A coercion appends if needed for type different than s/Str
-
 
 
 #### Options
