@@ -91,13 +91,24 @@ A key can be optional using s/s/optional-key :
                  (s/optional-key :person/gender) (s/enum "M" "Ms")})
 ```
 
-#### The calback function
+#### The callback function
 
 The callback function takes the cursor app state, the owner and the entity.
 
 `(fn [app owner entity])`
 
-### Asynchronous action
+##### Callback options
+
+```
+{(s/optional-key :action) {(s/optional-key :one-shot) s/Bool
+                             (s/optional-key :no-reset) s/Bool
+                             (s/optional-key :async) s/Bool
+                             (s/optional-key :attrs) {s/Any s/Any}}}
+```
+
+##### Asynchronous action
+
+`{:action {:async true}}`
 
 An action can also be asynchronous. In this case the callback fn must have 4 args :
 `(fn [app owner entity chan])`
