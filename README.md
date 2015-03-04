@@ -217,13 +217,27 @@ You can define the total ordering by giving a vector :
 ##### Change the rendering (implementation may change)
 
 
-For example, concerning the enum schema, it is possible to choose between a
-select or a group of radio buttons.
+###### Different way to display an enum
+
+By default the enum is display as a dropdown list
+It is possible to choose different representations :
+Vertical Group of radio buttons :
 ```
 (def opts {:person/gender {:type "radio-group"}})
 
 ```
+Horizontal group of radio buttons :
 
+```
+(def opts {:person/gender {:type "radio-group-inline"}})
+
+```
+
+Segmented controls :
+```
+(def opts {:person/gender {:type "btn-group"}})
+
+```
 
 ##### More Complex Validation rules
 
