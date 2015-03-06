@@ -548,9 +548,9 @@
     schema
     action
     clean
-    {:keys [validations init] :as opts} :- SchOptions]
+    opts :- SchOptions]
    (let [order (:order opts)
-         verily-rules validations
+         verily-rules (:validations opts)
          schema-coercer (coerce/coercer schema va/validation-coercer)
          validation (va/build-verily-validator verily-rules)
          checker (partial va/validate schema-coercer va/transform-schema-errors)
@@ -558,7 +558,7 @@
          unit-validators (va/unit-schema-validators unit-coercers)
          remove-errs-fn (va/build-error-remover verily-rules va/inter-fields-rules)
          typing-controls (build-typing-control schema)
-         initial-bs (build-init-state schema init)
+         initial-bs (build-init-state schema (:init opts))
          initial-action-state {:action :init :clean :disabled}
          willReceivePropsFn (:IWillReceiveProps opts)]
      (fn [app owner]
