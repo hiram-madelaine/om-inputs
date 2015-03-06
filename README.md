@@ -91,11 +91,30 @@ A key can be optional using s/s/optional-key :
                  (s/optional-key :person/gender) (s/enum "M" "Ms")})
 ```
 
-#### The calback function
+#### The callback function
 
 The callback function takes the cursor app state, the owner and the entity.
 
 `(fn [app owner entity])`
+
+##### Callback options
+
+```
+{(s/optional-key :action) {(s/optional-key :one-shot) s/Bool
+                             (s/optional-key :no-reset) s/Bool
+                             (s/optional-key :async) s/Bool
+                             (s/optional-key :attrs) {s/Any s/Any}}}
+```
+
+##### Asynchronous action
+
+`{:action {:async true}}`
+
+An action can also be asynchronous. In this case the callback fn must have 4 args :
+`(fn [app owner entity chan])`
+The fourth argument is a core.async channel in wich the fn puts the succes or failure of the operation.
+* :ok for success ;
+* :ko in case of failure.
 
 
 ### Build an Om input component
@@ -175,7 +194,6 @@ When clicking the action button, the form is validated according to the Schema :
 * A coercion appends if needed for type different than s/Str
 
 
-
 #### Options
 
 Options are a mean to override the default behavior of the library.
@@ -199,13 +217,27 @@ You can define the total ordering by giving a vector :
 ##### Change the rendering (implementation may change)
 
 
-For example, concerning the enum schema, it is possible to choose between a
-select or a group of radio buttons.
+###### Different way to display an enum
+
+By default the enum is display as a dropdown list
+It is possible to choose different representations :
+Vertical Group of radio buttons :
 ```
 (def opts {:person/gender {:type "radio-group"}})
 
 ```
+Horizontal group of radio buttons :
 
+```
+(def opts {:person/gender {:type "radio-group-inline"}})
+
+```
+
+Segmented controls :
+```
+(def opts {:person/gender {:type "btn-group"}})
+
+```
 
 ##### More Complex Validation rules
 
