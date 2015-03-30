@@ -239,6 +239,13 @@ Segmented controls :
 
 ```
 
+Stepper (-|+) :
+```
+(def opts {:items/number {:type "stepper"
+                          :attrs {:min 0 :max 10 :step 1}}})
+```
+
+
 ##### More Complex Validation rules
 
 It is possible to add more complex validation rules than the one provided by Schema.
