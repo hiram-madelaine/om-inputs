@@ -43,9 +43,21 @@
 }
 
 
+.stepper {
+
+  display: flex;
+}
+
+.stepper>.btn:last-child:not(:first-child) {
+
+  border-top-right-radius: 200px;
+  border-bottom-right-radius: 200px;
+}
 
 
+.stepper>.btn:first-child:not(:last-child) {
 
-
-
+  border-top-left-radius: 200px;
+  border-bottom-left-radius: 200px;
+}
 

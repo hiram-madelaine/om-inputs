@@ -137,12 +137,15 @@
   (let [{:keys [min max step value]} attrs
         plus (if step (partial + (long step)) inc)
         minus (if step (partial + (- (long step))) dec)]
-   (dom/div (clj->js (merge attrs {:className "btn-group"}))
+   (dom/div (clj->js (merge attrs {:className "btn-group stepper"}))
             (dom/button #js {:type      "button"
                              :className "btn btn-default"
                              :onClick #(when (or (nil? min)
                                                  (and min (<= (int min) (minus value))))
                                         (put! chan [k (minus value)]))} "-")
+            (dom/button #js {:className "btn btn-default"
+                             :disabled  "disabled"}
+                        value)
             (dom/button #js {:type      "button"
                              :className "btn btn-default"
                              :onClick #(when (or (nil? max)
