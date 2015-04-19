@@ -146,8 +146,8 @@
                                         (put! chan [k (minus value)]))} "-")
             (dom/input #js {:className style
                             :size      (if (str/blank? value) 1 (count (str value)))
-                            :value     value}
-                       value)
+                            :value     value})
+
             (dom/button #js {:type      "button"
                              :className style
                              :onClick #(when (or (nil? max)
