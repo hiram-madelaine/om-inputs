@@ -134,20 +134,22 @@
 
 (defmethod magic-input "stepper"
   [{{:keys [attrs k]} :opts chan :chan}]
-  (let [{:keys [min max step value]} attrs
+  (let [{:keys [min max step value size]} attrs
         plus (if step (partial + (long step)) inc)
-        minus (if step (partial + (- (long step))) dec)]
+        minus (if step (partial + (- (long step))) dec)
+        style (styles "btn btn-default" (when size (str "btn-" size)))]
    (dom/div (clj->js (merge attrs {:className "btn-group stepper"}))
             (dom/button #js {:type      "button"
-                             :className "btn btn-default"
+                             :className style
                              :onClick #(when (or (nil? min)
                                                  (and min (<= (int min) (minus value))))
                                         (put! chan [k (minus value)]))} "-")
-            (dom/button #js {:className "btn btn-default"
-                             :disabled  "disabled"}
-                        value)
+            (dom/input #js {:className style
+                            :size      (if (str/blank? value) 1 (count (str value)))
+                            :value     value}
+                       value)
             (dom/button #js {:type      "button"
-                             :className "btn btn-default"
+                             :className style
                              :onClick #(when (or (nil? max)
                                                  (and max (<= (plus value) (int max))))
                                         (put! chan [k (plus value)]))} "+"))))
