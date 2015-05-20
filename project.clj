@@ -2,22 +2,18 @@
   :description "Generate Web Input Form for Om/React.js, validation included."
   :url "https://github.com/hiram-madelaine/om-inputs"
 
-  :dependencies [[org.clojure/clojure "1.7.0-beta1"]
-                 [org.clojure/clojurescript "0.0-3196" :scope "provided"]
+  :dependencies [[org.clojure/clojure "1.7.0-beta3"]
+                 [org.clojure/clojurescript "0.0-3211" :scope "provided"]
                  [org.clojure/core.async "0.1.346.0-17112a-alpha"]
                  [org.omcljs/om "0.8.8" :scope "provided"]
                  [prismatic/dommy "0.1.2"]
                  [prismatic/schema "0.3.0"]
-                 ; [com.facebook/react "0.12.2.1"]
                  [jkkramer/verily "0.6.0"]
-                 [figwheel "0.2.5"]
-                 [com.cemerick/piggieback "0.1.3"]
-                 [weasel "0.6.0"]
                  [sablono "0.2.22"]
                  [clj-vat "0.1.2" :scope "provided"]]
 
   :plugins [[lein-cljsbuild "1.0.5"]
-            [lein-figwheel "0.2.5"]
+            [lein-figwheel "0.3.3"]
             [codox "0.8.10"]]
 
   :min-lein-version "2.5.0"
@@ -30,7 +26,7 @@
           :include [om-inputs.date-utils om-inputs.core]}
   :resource-paths ["examples"]
 
-  :repl-options {:nrepl-middleware [cemerick.piggieback/wrap-cljs-repl]}
+  ;:repl-options {:nrepl-middleware [cemerick.piggieback/wrap-cljs-repl]}
 
   :cljsbuild {
               :builds [{:id "dev"
