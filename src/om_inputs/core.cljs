@@ -1,4 +1,4 @@
-(ns om-inputs.core
+(ns ^:figwheel-always om-inputs.core
   (:require-macros [cljs.core.async.macros :refer [go go-loop]])
   (:require [om.core :as om :include-macros true]
             [om.dom :as dom :include-macros true]
@@ -676,11 +676,12 @@
                                 (dom/h3 #js {:className "panel-title"} title)))
                      (dom/form #js {:className "panel-body"
                                     :role "form"}
-                               (into-array (if order
-                                             (map (fn [k] (build-input owner (assoc (k opts) :k k :k-sch (su/get-sch schema k) :i18n (k labels)))) order)
-                                             (map (fn [[k t]]
-                                                    (let [k (if (keyword? k) k (:k k))]
-                                                     (build-input owner (assoc (k opts) :k k :k-sch t :i18n (k labels))))) schema)))
+                               (apply dom/div #js {:className "inputs-group"}
+                                        (into-array (if order
+                                              (map (fn [k] (build-input owner (assoc (k opts) :k k :k-sch (su/get-sch schema k) :i18n (k labels)))) order)
+                                              (map (fn [[k t]]
+                                                     (let [k (if (keyword? k) k (:k k))]
+                                                       (build-input owner (assoc (k opts) :k k :k-sch t :i18n (k labels))))) schema))))
                                (dom/div #js {:className "panel-button"}
                                         (om/build button-view app {:state state :opts {:k :action
                                                                                        :labels (:action labels)
