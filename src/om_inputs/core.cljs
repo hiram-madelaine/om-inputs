@@ -144,7 +144,7 @@
                              :onClick #(when (or (nil? min)
                                                  (and min (<= (int min) (minus value))))
                                         (put! chan [k (minus value)]))} "-")
-            (dom/input #js {:className style
+            (dom/input #js {:className "input-stepper"
                             :size      (if (str/blank? value) 1 (count (str value)))
                             :value     value})
 
