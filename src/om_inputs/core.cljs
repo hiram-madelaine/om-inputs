@@ -7,7 +7,7 @@
             [schema.core :as s :include-macros true]
             [schema.coerce :as coerce]
             [clojure.string :as str]
-            [om-inputs.utils :refer [full-name]]
+            [om-inputs.utils :refer [full-name ->int]]
             [om-inputs.date-utils :as d]
             [om-inputs.schema-utils :as su :refer [sch-type]]
             [om-inputs.schemas :refer [sch-business-state sch-field-state SchOptions]]
@@ -135,24 +135,28 @@
 (defmethod magic-input "stepper"
   [{{:keys [attrs k]} :opts chan :chan}]
   (let [{:keys [min max step value size]} attrs
+        value (->int value)
+        min (->int min)
+        max (->int max)
+        step (->int step)
         plus (if step (partial + (long step)) inc)
         minus (if step (partial + (- (long step))) dec)
         style (styles "btn btn-default" (when size (str "btn-" size)))]
-   (dom/div (clj->js (merge attrs {:className "btn-group stepper"}))
+    (dom/div (clj->js (merge attrs {:className "btn-group stepper"}))
             (dom/button #js {:type      "button"
                              :className style
-                             :onClick #(when (or (nil? min)
-                                                 (and min (<= (int min) (minus value))))
-                                        (put! chan [k (minus value)]))} "-")
+                             :onClick   #(when (or (nil? min)
+                                                   (and min (<= (int min) (minus value))))
+                                          (put! chan [k (str (minus value))]))} "-")
             (dom/input #js {:className "input-stepper"
                             :size      (if (str/blank? value) 1 (count (str value)))
                             :value     value})
 
             (dom/button #js {:type      "button"
                              :className style
-                             :onClick #(when (or (nil? max)
-                                                 (and max (<= (plus value) (int max))))
-                                        (put! chan [k (plus value)]))} "+"))))
+                             :onClick   #(when (or (nil? max)
+                                                   (and max (<= (plus value) (int max))))
+                                          (put! chan [k (str (plus value))]))} "+"))))
 
 
 (defmethod magic-input s/Inst

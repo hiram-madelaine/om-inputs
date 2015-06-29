@@ -4,6 +4,17 @@
             [om.dom :as dom :include-macros true]))
 
 
+
+;_________________________________________________
+;                                                 |
+;          Interop Utils                          |
+;_________________________________________________|
+
+
+(defn ->int [s]
+  (when-not (str/blank? s) (js/parseInt s 10)))
+
+
 ;_________________________________________________
 ;                                                 |
 ;          Clojure Utils                          |
@@ -16,6 +27,7 @@
   (if (namespace k)
    (str/join "/" ((juxt namespace name) k))
    (name k)))
+
 
 
 
