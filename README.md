@@ -2,6 +2,8 @@
 
 The generation is based on data description and uses [Prismatic/Schema](https://github.com/Prismatic/schema) for this purpose.
 
+[![Clojars Project](http://clojars.org/om-inputs/latest-version.svg)](http://clojars.org/om-inputs)
+
 ## Project Goals
 
 * Generate quick prototype or production quality forms
@@ -11,9 +13,9 @@ The generation is based on data description and uses [Prismatic/Schema](https://
 
 ## Project Maturity
 
-om-inputs is very young.
-It is used for a real production project but is not released yet.
-At this stage, the project is subject to many breaking changes.
+om-inputs is used for real production projects that are used every day.
+It has been tested by QA Team.
+At this stage, the project will minimize the breaking changes as it could impact production code.
 
 
 ## Show me what looks like !
