@@ -155,11 +155,35 @@
                                         (put! chan [k (plus value)]))} "+"))))
 
 
-(defmethod magic-input s/Inst
+#_(defmethod magic-input s/Inst
   [{{:keys [attrs]} :opts}]
   (let [v (:value attrs)
         date-in (d/display-date v)]
     (dom/input (clj->js (merge attrs {:value date-in})))))
+
+(defmethod magic-input s/Inst
+  [{{:keys [k attrs]} :opts chan :chan}]
+  (let [date (:value attrs)]
+    (dom/input (clj->js (merge attrs
+                               {:placeholder d/default-fmt
+                                :value       (d/display-date date)
+                                :onChange    #()
+                                :onBlur      #(let [v (e-value %)]
+                                               (put! chan [k (when-not (str/blank? v) (d/parse v))])
+                                               (put! chan [:focus k])
+                                               (put! chan [:validate k]))})))))
+
+(defmethod magic-input "date"
+  [{{:keys [k attrs]} :opts chan :chan}]
+  (let [date (:value attrs)]
+    (dom/input (clj->js (merge attrs
+                               {:type     "date"
+                                :value    (d/display-date "yyyy-MM-dd" date)
+                                :onChange #()
+                                :onBlur   #(let [v (e-value %)]
+                                            (put! chan [k (when-not (str/blank? v) (d/parse "yyyy-MM-dd" v))])
+                                            (put! chan [:focus k])
+                                            (put! chan [:validate k]))})))))
 
 
 (defmethod magic-input s/Bool
@@ -275,7 +299,7 @@
         state (om/get-state owner :inputs)
         date-fieds (for [[k {:keys [type]}] state
                          :when (and (= s/Inst type)
-                                    (not= "now" (get-in opts [k :type])))]
+                                    (not (#{"now" "date"} (get-in opts [k :type]))))]
                      k)]
     (doseq [k date-fieds]
       (add-date-picker! k (om/get-node owner (full-name k)) chan f))))
@@ -643,8 +667,9 @@
                    (let [coerce (get typing-controls k (fn [n _] n))
                          ptfn (get-in opts [k :post-typing] identity)
                          v (ptfn v)
-                         old-val (om/get-state owner [:inputs k :value])]
-                     (om/set-state! owner [:inputs k :value] (coerce v old-val)))))
+                         old-val (om/get-state owner [:inputs k :value])
+                         coerced (coerce v old-val)]
+                     (om/set-state! owner [:inputs k :value] coerced))))
                (recur)))))
          om/IDidMount
          (did-mount

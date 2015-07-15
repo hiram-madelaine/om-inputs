@@ -55,8 +55,10 @@
 
 (defn display-date
   "Takes care of date rendering in the input."
-  [v]
-  (when-not (str/blank? v) (fmt default-fmt v)))
+  ([f v]
+   (when-not (str/blank? v) (fmt f v)))
+  ([v]
+    (display-date default-fmt v)))
 
 
 (defn goog-date->js-date
