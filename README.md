@@ -11,7 +11,7 @@ Using Schema allows the :
 
 ## Show me what looks like !
 
-[See it in action](https://rawgit.com/hiram-madelaine/om-inputs/master/release.html#)
+[See it in action](release.html#)
 
 The project contains the example that is used in the documentation
 
