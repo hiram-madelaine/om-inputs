@@ -568,6 +568,8 @@
 (s/defn
   make-input-comp
   "Build an input form Om component based on a prismatic/Schema"
+  ([{:keys [name schema action clean opts] :or {opts {}} :as spec}]
+    (make-input-comp name schema action clean opts))
   ([comp-name :- s/Keyword
     schema
     action]
