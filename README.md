@@ -1,6 +1,7 @@
 > You just go down the list of all the most important things on the internet and what you find is :    
 > a Form is usually the broker for the stuff that matters  
-> [Luke Wroblewski from Conversions@Google 2014 - Part 2](https://www.youtube.com/watch?v=nmKMz3Fg76M)  
+
+[Luke Wroblewski from Conversions@Google 2014 - Part 2](https://www.youtube.com/watch?v=nmKMz3Fg76M)  
 
 
 
