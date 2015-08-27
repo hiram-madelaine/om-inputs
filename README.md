@@ -1,10 +1,10 @@
-# A ClojureScript library that generates Om/React forms
-
-
-
-> You just go down the list of all the most important things on the internet 
-> and what you find is a Form is usually the broker for the stuff that matters
+> You just go down the list of all the most important things on the internet and what you find is :    
+> a Form is usually the broker for the stuff that matters  
 > [Luke Wroblewski from Conversions@Google 2014 - Part 2](https://www.youtube.com/watch?v=nmKMz3Fg76M)  
+
+
+
+# A ClojureScript library that generates Om/React forms
 
 The generation is based on data description and uses [Prismatic/Schema](https://github.com/Prismatic/schema) for this purpose.
 
