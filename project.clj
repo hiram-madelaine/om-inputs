@@ -1,12 +1,12 @@
-(defproject om-inputs "0.3.9-SNAPSHOT"
+(defproject om-inputs "0.3.9"
   :description "Generate Web Input Form for Om/React.js, validation included."
   :url "https://github.com/hiram-madelaine/om-inputs"
 
   :dependencies [[org.clojure/clojure "1.7.0-RC2"]
-                 [org.clojure/clojurescript "0.0-3308" :scope "provided"]
+                 [org.clojure/clojurescript "1.7.122" :scope "provided"]
                  [org.clojure/core.async "0.1.346.0-17112a-alpha"]
                  [org.omcljs/om "0.8.8" :scope "provided"]
-                 [prismatic/schema "0.4.2"]
+                 [prismatic/schema "1.0.0"]
                  [jkkramer/verily "0.6.0"]
                  [sablono "0.2.22"]
                  [clj-vat "0.1.2" :scope "provided"]]
