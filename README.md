@@ -1,15 +1,21 @@
 # A ClojureScript library that generates Om/React forms
 
-The generation is based on data description and uses [Prismatic/Schema](https://github.com/Prismatic/schema) for this purpose.
+> You just go down the list of all the most important things on the internet and what you find is :    
+> a Form is usually the broker for the stuff that matters  
 
-[![Clojars Project](http://clojars.org/om-inputs/latest-version.svg)](http://clojars.org/om-inputs)
+[Luke Wroblewski from Conversions@Google 2014 - Part 2](https://www.youtube.com/watch?v=nmKMz3Fg76M)  
+
 
 ## Project Goals
 
-* Generate quick prototype or production quality forms
+* Generate forms with specification using [Prismatic/Schema](https://github.com/Prismatic/schema).
 * Provide best practice UX
 * Use no external JS Framework dependencies beside React.js
 
+
+## Artifacts
+
+[![Clojars Project](http://clojars.org/om-inputs/latest-version.svg)](http://clojars.org/om-inputs)
 
 ## Project Maturity
 
@@ -20,15 +26,7 @@ At this stage, the project will minimize the breaking changes as it could impact
 
 ## Show me what looks like !
 
-[See it in action](https://rawgit.com/hiram-madelaine/om-inputs/master/release.html#)
-
-The project contains the example that is used in the documentation
-
-Just clone the repo and run :
-
-`lein cljsbuild auto`
-
-`open index.html`
+[See it in action](http://hiram-madelaine.github.io/om-inputs/playground)
 
 
 ## How does it work
