@@ -323,4 +323,4 @@ Just put a map in the shared data :
 
 Copyright © 2013-2015 Hiram Madelaine
 
-Licensed under the EPL (see the file LICENCE.md).
+Licensed under the EPL (see the file LICENSE.md).
