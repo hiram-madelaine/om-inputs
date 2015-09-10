@@ -319,3 +319,8 @@ Just put a map in the shared data :
 
 ```
 
+## Copyright and license
+
+Copyright © 2013-2015 Hiram Madelaine
+
+Licensed under the EPL (see the file epl.html).
