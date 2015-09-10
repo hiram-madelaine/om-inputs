@@ -26,7 +26,7 @@ At this stage, the project will minimize the breaking changes as it could impact
 
 ## Show me what looks like !
 
-[See it in action](http://hiram-madelaine.github.io/om-inputs/playground)
+[You can try it online with the interactive tutorial](http://hiram-madelaine.github.io/om-inputs/playground)
 
 
 ## How does it work
