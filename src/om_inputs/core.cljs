@@ -315,38 +315,64 @@
 ;                 Om/React Sub-Components                   |
 ;___________________________________________________________|
 
+(defn compute
+  "Compute the tooltip position depending on the placement : top, right, bottom and left.
+   Right position is the default"
+  [pos rect rect-tool]
+  (let [w-rect (.-width rect)
+        w-rect-tool (.-width rect-tool)
+        h-rect (.-height rect)
+        h-rect-tool (.-height rect-tool)]
+    (condp = pos
+      "bottom" [(- w-rect w-rect-tool)  h-rect]
+      "left"  [(- w-rect-tool) (* 0.5 (- h-rect h-rect-tool))]
+      "top"   [(- w-rect w-rect-tool) (- h-rect-tool)]
+      [w-rect (* 0.5 (- h-rect h-rect-tool))])))
+
+
+(defn tooltip-position!
+  "Set the position of the information tooltip"
+  [owner {:keys [k tooltip-position] :as opts}]
+  (let [tool (om/get-node owner (str k "-tooltip"))
+        elem (.getElementById js/document (full-name k))
+        rect-tool (.getBoundingClientRect tool)
+        rect (.getBoundingClientRect elem)
+        [left top] (compute tooltip-position rect rect-tool)]
+    (set! (.-left (.-style tool)) (str left "px"))
+    (set! (.-top (.-style tool)) (str top "px"))))
+
 
 (defn tooltip
   "Display a tooltip next to the field to inform the user.
   options :
   :k the target field
-  :type serves to build the css class tooltip-type
+  :type (error, info) serves to build the css class tooltip-type
   :action attach a function when closing the tooltip"
-  [app owner opts]
+  [{:keys [title mess]}
+   owner
+   {:keys [k type action tooltip-position] :as opts}]
   (reify
     om/IDidMount
     (did-mount
      [_]
-     (let [tool (om/get-node owner (str (:k opts) "-tooltip"))
-           elem (.getElementById js/document (full-name (:k opts)))
-           rect-tool (.getBoundingClientRect tool)
-           rect (.getBoundingClientRect elem)
-           delta (* 0.5 (- (.-height rect) (.-height rect-tool)))]
-       (set! (.-left (.-style tool)) (str (.-width rect) "px"))
-       (set! (.-top (.-style tool)) (str delta "px"))))
+     (tooltip-position! owner opts))
     om/IRender
     (render
      [_]
-     (dom/div #js {:className (styles "popover right" (str "popover-" (:type opts)))
-                   :role "alert"
-                   :ref (str (:k opts) "-tooltip")}
-              (dom/div #js {:className "arrow"} "")
-              (when (:title app)  (dom/div #js {:className "popover-title"} (:title app)))
-              (dom/div #js {:className "popover-content"} (:mess app)
-                       (dom/div #js {:type "button"
-                                     :className "close"
-                                     :onClick (:action opts)} "x"))))))
-
+      (let [popover-pos (or tooltip-position "right")]
+        (dom/div #js {:className (styles "popover" popover-pos (str "popover-" type))
+                      :role      "alert"
+                      :ref       (str k "-tooltip")}
+                 (dom/div #js {:className "arrow"} "")
+                 (when title (dom/div #js {:className "popover-title"} title))
+                 (dom/div #js {:className "popover-content"
+                               :onClick action
+                               :onTouchEnd action}
+                          mess
+                          #_(dom/div #js {:type      "button"
+                                        :className "close"
+                                        :onClick   action
+                                        :onTouchEnd action} "x")))))))
 
 
 (defn message
@@ -481,52 +507,61 @@
           (fn [_ {layout :layout} _ _]
             layout))
 
+
+
+
+(defn popover-info
+  [owner kbs opts]
+  (when (and (i/info opts)
+             (:focus kbs))
+    (om/build tooltip {:mess  (i/info opts)
+                       :title (i/info-title opts)}
+              {:opts {:k           (:k opts)
+                      :type        "info"
+                      :tooltip-position (or (:tooltip-position opts) (om/get-state owner [:opts :tooltip-position]))}})))
+
+(defn popover-error
+  [owner kbs opts {:keys [invalid] :as val-states}]
+  (let [{:keys [chan lang]} (om/get-state owner)
+        mess (error-mess owner kbs lang)]
+    (when (and invalid mess)
+      (om/build tooltip {:mess mess}
+               {:opts  {:k           (:k opts)
+                        :type        "error"
+                        :action      #(put! chan [:kill-mess (:k opts)])
+                        :tooltip-position (or (:tooltip-position opts) (om/get-state owner [:opts :tooltip-position]))}
+                :state {:mess mess}}))))
+
 (defmethod layout-input :default
-  [owner opts kbs {:keys [invalid] :as val-states}]
-  (let [{:keys [chan lang]} (om/get-state owner)]
+  [owner opts kbs val-states]
+  (let [{:keys [chan]} (om/get-state owner)]
     (dom/div #js {:className (styles "form-group" (validation-style val-states))}
-            (dom/label #js {:htmlFor   (full-name (:k opts))
-                            :className (styles "control-label" (required-style kbs))}
-                       (i/label opts))
-            (when (:labeled opts) (dom/label #js {:className "badge"} (:value kbs)))
-            (when (i/desc opts) (dom/div #js {:className "description"} (i/desc opts)))
-            (when (i/html-desc opts) (html (i/html-desc opts)))
-            (dom/div #js {:className "input-container"}
-                     (let [opts (assoc-in opts [:attrs :className] "form-control")]
-                       (magic-input {:chan chan :opts opts}))
-                     (when (and (i/info opts)
-                                (:focus kbs))
-                       (om/build tooltip {:mess  (i/info opts)
-                                          :title (i/info-title opts)} {:opts {:k (:k opts) :type "info"}}))
-                     (let [mess (error-mess owner kbs lang)]
-                       (when (and invalid mess)
-                         (om/build tooltip {:mess mess} {:opts  {:k      (:k opts)
-                                                                 :type   "error"
-                                                                 :action #(put! chan [:kill-mess (:k opts)])}
-                                                         :state {:mess mess}})))))))
+             (dom/label #js {:htmlFor   (full-name (:k opts))
+                             :className (styles "control-label" (required-style kbs))}
+                        (i/label opts))
+             (when (:labeled opts) (dom/label #js {:className "badge"} (:value kbs)))
+             (when (i/desc opts) (dom/div #js {:className "description"} (i/desc opts)))
+             (when (i/html-desc opts) (html (i/html-desc opts)))
+             (dom/div #js {:className "input-container"}
+                      (let [opts (assoc-in opts [:attrs :className] "form-control")]
+                        (magic-input {:chan chan :opts opts}))
+                      (popover-info owner kbs opts)
+                      (popover-error owner kbs opts val-states)))))
 
 (defmethod layout-input "in-line"
-  [owner opts kbs {:keys [invalid] :as val-states}]
-  (let [{:keys [chan lang]} (om/get-state owner)]
-   (dom/div #js {:className (validation-style val-states)}
-            (dom/div #js {:className (styles "checkbox" (required-style kbs))}
-                     (dom/label #js {:htmlFor   (full-name (:k opts))}
-                                (when (:labeled opts) (dom/label #js {:className "badge"} (:value kbs)))
-                                (dom/div #js {:className "input-container"}
-                                         (magic-input {:chan chan :opts opts})
-                                         (when (and (i/info opts)
-                                                    (:focus opts))
-                                           (om/build tooltip {:mess  (i/info opts)
-                                                              :title (i/info-title opts)} {:opts {:k (:k opts) :type "info"}})))
-                                (dom/div #js {} (i/label opts)))
-                     (let [mess (error-mess owner kbs lang)]
-                       (when (and invalid mess)
-                         (om/build tooltip {:mess mess} {:opts  {:k      (:k opts)
-                                                                 :type   "error"
-                                                                 :action #(put! chan [:kill-mess (:k opts)])}
-                                                         :state {:mess mess}}))))
-            (when (i/desc opts) (dom/p #js {:className "description"} (i/desc opts)))
-            (when (i/html-desc opts) (html (i/html-desc opts))))))
+  [owner opts kbs val-states]
+  (let [{:keys [chan]} (om/get-state owner)]
+    (dom/div #js {:className (validation-style val-states)}
+             (dom/div #js {:className (styles "checkbox" (required-style kbs))}
+                      (dom/label #js {:htmlFor (full-name (:k opts))}
+                                 (when (:labeled opts) (dom/label #js {:className "badge"} (:value kbs)))
+                                 (dom/div #js {:className "input-container"}
+                                          (magic-input {:chan chan :opts opts})
+                                          (popover-info owner kbs opts))
+                                 (dom/div #js {} (i/label opts)))
+                      (popover-error owner kbs opts val-states))
+             (when (i/desc opts) (dom/p #js {:className "description"} (i/desc opts)))
+             (when (i/html-desc opts) (html (i/html-desc opts))))))
 
 
 (defn build-input
@@ -549,7 +584,8 @@
                  :onFocus     #(put! chan [:focus k])
                  :onChange    #(put! chan [k (e-value %)])
                  :placeholder (get-in opts [:i18n :ph])
-                 :disabled    (:disabled  kbs)}
+                 :disabled    (:disabled  kbs)
+                 :tooltip-position (om/get-state owner [:opts :tooltip-position])}
         opts (update-in opts [:attrs] #(merge k-attrs %))]
     (layout-input owner opts kbs val-states)))
 

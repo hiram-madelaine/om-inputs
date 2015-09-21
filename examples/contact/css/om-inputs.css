@@ -70,5 +70,6 @@
   padding: 10px;
 }
 
-
-
+.popover-content {
+  cursor: pointer ;
+}
