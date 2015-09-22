@@ -1,4 +1,4 @@
-(ns ^:figwheel-always om-inputs.demo
+(ns ^:figwheel-load  om-inputs.demo
   (:require-macros [cljs.core.async.macros :refer [go]])
   (:require
     [om.core :as om :include-macros true]
@@ -34,8 +34,6 @@
 
 
  (validation->fn [:positive [:person/age] :positive])
-
-
 
 
  (defmethod validation->fn :vat
@@ -165,7 +163,7 @@
        #_(display-edn app owner value)
        ))
                   display-edn
-                  {:tooltip-position     "left"
+                  {:tooltip-position     "top"
                    :IWillReceiveProps    (fn [owner next-props]
                                            (prn "on receive props")
                                            (when-let [first-name (get-in next-props [:first-name])]
@@ -208,7 +206,7 @@
                    ;:person/size {:attrs {:type "number"}}
                    :person/age           {:type "stepper"
                                           ;:attrs   {:min 0 :max 10 :step 2 :size "lg"}
-                                          }
+                                          :tooltip-position     "right"}
                    :person/married       {
                                           ;:popover-pos "right"
                                           ;:layout      "in-line"
