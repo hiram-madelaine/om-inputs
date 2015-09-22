@@ -1,4 +1,4 @@
-(defproject om-inputs "0.4.0-SNAPSHOT"
+(defproject om-inputs "0.4.0"
   :description "Generate Web Input Form for Om/React.js, validation included."
   :url "https://github.com/hiram-madelaine/om-inputs"
   :profiles {:dev {:dependencies [[org.clojure/test.check "0.7.0"]]}}
