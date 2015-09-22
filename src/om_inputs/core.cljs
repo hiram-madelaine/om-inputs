@@ -54,7 +54,7 @@
 ;___________________________________________________________|
 
 
-(defmulti magic-input
+(defmulti render
   (fn [{opts :opts}]
     (get-in opts [:type] (sch-type (:k-sch opts)))))
 
@@ -70,7 +70,7 @@
        (keys data)
        (:vs k-sch)))
 
-(defmethod magic-input "enum"
+(defmethod render "enum"
   [{{:keys [attrs i18n] :as options} :opts}]
   (apply dom/select (clj->js attrs)
          (dom/option #js {:value ""} "")
@@ -95,11 +95,11 @@
                                     (enum-label i18n code))))
               (choose-iterator options))))
 
-(defmethod magic-input "radio-group"
+(defmethod render "radio-group"
   [m]
   (radio-group "radio" m))
 
-(defmethod magic-input "radio-group-inline"
+(defmethod render "radio-group-inline"
   [m]
   (radio-group "radio-inline" m))
 
@@ -117,14 +117,14 @@
                      :onClick   #(put! chan [k code])}
                 (enum-label i18n code))))
 
-(defmethod magic-input "btn-group"
+(defmethod render "btn-group"
   [{{:keys [attrs k i18n] :as options} :opts chan :chan}]
   (apply dom/div (clj->js (merge attrs {:className "btn-group"}))
          (map
            (make-segmented "button" k (:value attrs) i18n chan)
            (choose-iterator options))))
 
-(defmethod magic-input "range-btn-group"
+(defmethod render "range-btn-group"
   [{{:keys [attrs i18n k]} :opts chan :chan}]
   (let [{:keys [min max step value] :or {step 1}} attrs]
     (apply dom/div (clj->js (merge attrs {:className "btn-group"}))
@@ -132,7 +132,7 @@
              (make-segmented "button" k value i18n chan)
              (range (int min) (inc (int max)) step)))))
 
-(defmethod magic-input "stepper"
+(defmethod render "stepper"
   [{{:keys [attrs k]} :opts chan :chan}]
   (let [{:keys [min max step value size]} attrs
         value (->int value)
@@ -152,20 +152,20 @@
                             :size      (if (str/blank? value) 1 (count (str value)))
                             :value     value})
 
-            (dom/button #js {:type      "button"
+            (dom/button #js {:type      "button button-stepper"
                              :className style
                              :onClick   #(when (or (nil? max)
                                                    (and max (<= (plus value) (int max))))
                                           (put! chan [k (str (plus value))]))} "+"))))
 
 
-#_(defmethod magic-input s/Inst
+#_(defmethod render s/Inst
   [{{:keys [attrs]} :opts}]
   (let [v (:value attrs)
         date-in (d/display-date v)]
     (dom/input (clj->js (merge attrs {:value date-in})))))
 
-(defmethod magic-input s/Inst
+(defmethod render s/Inst
   [{{:keys [k attrs]} :opts chan :chan}]
   (let [date (:value attrs)]
     (dom/input (clj->js (merge attrs
@@ -177,7 +177,7 @@
                                                (put! chan [:focus k])
                                                (put! chan [:validate k]))})))))
 
-(defmethod magic-input "date"
+(defmethod render "date"
   [{{:keys [k attrs]} :opts chan :chan}]
   (let [date (:value attrs)]
     (dom/input (clj->js (merge attrs
@@ -190,7 +190,7 @@
                                             (put! chan [:validate k]))})))))
 
 
-(defmethod magic-input s/Bool
+(defmethod render s/Bool
   [{{:keys [k attrs]} :opts chan :chan}]
   (let [value (:value attrs)]
     (dom/input (clj->js (merge attrs {:checked  (js/Boolean value)
@@ -198,16 +198,16 @@
                                       :type     "checkbox"})))))
 
 
-#_(defmethod magic-input integer?
+#_(defmethod render integer?
  [{:keys [k attrs data]}]
   (dom/input (clj->js (merge {:type "number"} attrs))))
 
 
-(defmethod magic-input "range"
+(defmethod render "range"
  [{{:keys [attrs]} :opts}]
   (dom/input (clj->js (merge {:type "range"} attrs))))
 
-(defmethod magic-input "now"
+(defmethod render "now"
   [{{:keys [attrs k]} :opts chan :chan}]
   (dom/input (clj->js (merge attrs {:type           "button"
                                     :className      "btn"
@@ -215,14 +215,14 @@
                                     :onClick        #(put! chan [k (js/Date.)])}))))
 
 
-(defmethod magic-input "email"
+(defmethod render "email"
   [{{:keys [attrs]} :opts}]
   (dom/input (clj->js (merge  {:type "email"
                                :autoCapitalize "off"
                                :autoCorrect "off"} attrs))))
 
 
-(defmethod magic-input :default
+(defmethod render :default
   [{{:keys [attrs]} :opts}]
   (dom/input (clj->js attrs)))
 
@@ -315,6 +315,13 @@
 ;                 Om/React Sub-Components                   |
 ;___________________________________________________________|
 
+
+
+
+;___________________________________________________________
+;                                                           |
+;        Tooltip error/info                                 |
+;___________________________________________________________|
 (defn compute
   "Compute the tooltip position depending on the placement : top, right, bottom and left.
    Right position is the default"
@@ -373,28 +380,10 @@
                                         :className "close"
                                         :onClick   action
                                         :onTouchEnd action} "x")))))))
-
-
-(defn message
-  "Display a dismissable error message"
-  [app owner m]
-  (reify om/IRenderState
-    (render-state
-     [this {:keys [chan mess ] :as state}]
-     (dom/div #js {:className "alert alert-danger"
-                   :role "alert"}
-              (dom/button #js {:type "button"
-                               :className "close"
-                               :data-dismiss "alert"
-                               :onClick #(put! chan [:kill-mess (:k m)])} "x")
-              mess))))
-
-(defn description
-  "Display a small description under the label"
-  [app owner m]
-  (om/component
-   (dom/div #js {:className "description"} (:desc m))))
-
+;___________________________________________________________
+;                                                           |
+;        Button action/clean                                |
+;___________________________________________________________|
 
 (defn button-view
   [app owner {:keys [k labels comp-name attrs]}]
@@ -419,41 +408,6 @@
                                      (dom/i #js {:className "fa fa-spin fa-cog"})))
                 (dom/div #js {:className "description"} (:desc labels)))))))
 
-;___________________________________________________________
-;                                                           |
-;        Syntactic sugar to access business state           |
-;___________________________________________________________|
-
-(s/defn get-in-bs
-            [m :- sch-business-state
-             f :- s/Keyword
-             k :- s/Keyword]
-            (get-in m [f k]))
-
-
-(s/defn fvalue :- s/Any
-        [m k]
-        (get-in-bs m k :value))
-
-(s/defn fvalid :- (s/maybe s/Bool)
-        [m k]
-        (get-in-bs m k :valid))
-
-(s/defn frequired :- s/Bool
-        [m k]
-            (get-in-bs m k :required))
-
-(s/defn ferrors :- va/sch-errors-list
-        [m k]
-        (get-in-bs m k :error))
-
-(s/defn fdisabled :- (s/maybe s/Bool)
-  [m k]
-  (get-in-bs m k :disabled))
-
-(defn ffocus
-  [m k]
-  (get-in-bs m k :focus))
 
 ;___________________________________________________________
 ;                                                           |
@@ -544,7 +498,7 @@
              (when (i/html-desc opts) (html (i/html-desc opts)))
              (dom/div #js {:className "input-container"}
                       (let [opts (assoc-in opts [:attrs :className] "form-control")]
-                        (magic-input {:chan chan :opts opts}))
+                        (render {:chan chan :opts opts}))
                       (popover-info owner kbs opts)
                       (popover-error owner kbs opts val-states)))))
 
@@ -556,7 +510,7 @@
                       (dom/label #js {:htmlFor (full-name (:k opts))}
                                  (when (:labeled opts) (dom/label #js {:className "badge"} (:value kbs)))
                                  (dom/div #js {:className "input-container"}
-                                          (magic-input {:chan chan :opts opts})
+                                          (render {:chan chan :opts opts})
                                           (popover-info owner kbs opts))
                                  (dom/div #js {} (i/label opts)))
                       (popover-error owner kbs opts val-states))
