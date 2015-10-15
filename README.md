@@ -70,20 +70,20 @@ Using Schema allows the :
 
 A value can be nil using s/maybe :
 
-```
+```clj
 {:person/first-name (s/maybe s/Str)}
 
 ```
 
 
 A key can be optional using s/s/optional-key :
-```
+```clj
  {(s/optional-key :person/size) s/Num}
 ```
 
 ##### Example
 
-```
+```clj
 (def sch-person {:person/first-name s/Str
                  :person/name s/Str
                  (s/optional-key :person/birthdate) s/Inst
@@ -95,11 +95,13 @@ A key can be optional using s/s/optional-key :
 
 The callback function takes the cursor app state, the owner and the entity.
 
-`(fn [app owner entity])`
+```clj
+(fn [app owner entity])
+```
 
 ##### Callback options
 
-```
+```clj
 {(s/optional-key :action) {(s/optional-key :one-shot) s/Bool
                              (s/optional-key :no-reset) s/Bool
                              (s/optional-key :async) s/Bool
@@ -108,7 +110,9 @@ The callback function takes the cursor app state, the owner and the entity.
 
 ##### Asynchronous action
 
-`{:action {:async true}}`
+```clj
+{:action {:async true}}
+```
 
 An action can also be asynchronous. In this case the callback fn must have 4 args :
 `(fn [app owner entity chan])`
@@ -126,7 +130,7 @@ To build an Om input component, just call the function `make-input-comp` with th
 
 In this example we build the component :create-person with the Schema seen previously and the callback simply diplay the created map :
 
-```
+```clj
 (def person-input-view (make-input-comp :create-person sch-person #(js/alert %3)))
 ```
 
@@ -208,11 +212,9 @@ The schema is a map that can't be ordered so the fields are displayed in a rando
 
 You can define the total ordering by giving a vector :
 
-```
+```clj
 (def opts {:order [:person/first-name :person/name :person/gender :person/birthdate :person/size :person/married]})
-
 ```
-
 
 ##### Change the rendering (implementation may change)
 
@@ -222,25 +224,22 @@ You can define the total ordering by giving a vector :
 By default the enum is display as a dropdown list
 It is possible to choose different representations :
 Vertical Group of radio buttons :
-```
+```clj
 (def opts {:person/gender {:type "radio-group"}})
-
 ```
 Horizontal group of radio buttons :
 
-```
+```clj
 (def opts {:person/gender {:type "radio-group-inline"}})
-
 ```
 
 Segmented controls :
-```
+```clj
 (def opts {:person/gender {:type "btn-group"}})
-
 ```
 
 Stepper (-|+) :
-```
+```clj
 (def opts {:items/number {:type "stepper"
                           :attrs {:min 0 :max 10 :step 1}}})
 ```
@@ -263,7 +262,7 @@ My goal is to be able to plug any other validation framework.
 ######  Add validations rules
 
 
-```
+```clj
 (def opts {:validations [[:min-val 100 :person/size :person-size-min-length]
                          [:email :person/email :bad-email]]})
 ```
@@ -274,9 +273,8 @@ My goal is to be able to plug any other validation framework.
 
 It should be possible to have initial values for each field.
 
-```
+```clj
 (def opts {:init {:person/married true}})
-
 ```
 
 The initial data could be retrieved from the cursor app-state.
@@ -287,7 +285,7 @@ The initial data could be retrieved from the cursor app-state.
 It is possible to provide the labels and error messages in multiple languages.
 Just put a map in the shared data :
 
-```
+```clj
 (om/root
  app-view
  app-state
