@@ -24,7 +24,7 @@ It has been tested by QA Team.
 At this stage, the project will minimize the breaking changes as it could impact production code.
 
 
-## Show me what looks like !
+## Show me what it looks like and how to use it !
 
 [You can try it online with the interactive tutorial](http://hiram-madelaine.github.io/om-inputs/playground)
 
