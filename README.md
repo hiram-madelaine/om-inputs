@@ -116,7 +116,7 @@ The callback function takes the cursor app state, the owner and the entity.
 
 An action can also be asynchronous. In this case the callback fn must have 4 args :
 `(fn [app owner entity chan])`
-The fourth argument is a core.async channel in wich the fn puts the succes or failure of the operation.
+The fourth argument is a core.async channel in which the fn puts the succes or failure of the operation.
 * :ok for success ;
 * :ko in case of failure.
 
@@ -172,7 +172,7 @@ This job is done by Schema/Coercion :
 When a value is not of the declared type, we have a chance to coerce it in the correct type.
 
 
-The problem with an HTMl form is that all data are strings.
+The problem with an HTML form is that all data are strings.
 
 * An empty string represents nil
 * Other types must be coerced to the correct type : s/Num, s/Int, s/Inst
